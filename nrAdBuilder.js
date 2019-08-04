@@ -1668,7 +1668,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   Logger.log("Building adgroup objects. Total input : " + this.feedContent.length);
 
   var prevalidatedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", true);
-  var discardedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", true);
+  var discardedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", false);
   var KEYWORD_VALIDATION_LOG = [];
 
   for(var i=1;i<300;i++){ // this.feedContent.length

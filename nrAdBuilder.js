@@ -155,6 +155,8 @@ function nrCampaignBuilder(feedContent) {
     var feedHandler = new FeedHandler(FEED_URL, COLUMN_SEPARATOR, columnMapper, campaignName, feedContent, keywordValidationStorageHandler);
 
     fullAdGroupObjects = feedHandler.getAdGroupObjects();
+
+    if (minutesRemaining < 5) {Logger.log("Execution time past twentyfive minutes. Stopping execution..."); break;}
     var shouldBeActiveAdGroups = new AdGroupList(feedHandler.getAdGroupList(fullAdGroupObjects));
 
     var saleAdGroups = new AdGroupList(feedHandler.getSaleAdGroupList(fullAdGroupObjects));
@@ -1674,8 +1676,10 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   Logger.log("discardedKeywords ( Length : " + discardedKeywords.length + ") : " + discardedKeywords);
 
   var KEYWORD_VALIDATION_LOG = [];
+  var maxLimit = (this.feedContent.length - prevalidatedKeywords.length - discardedKeywords.length) > 500 ? 500 : (prevalidatedKeywords.length + discardedKeywords.lengthmaxLimit + 500);
+  Logger.log("maxLimit : " + maxLimit);
 
-  for(var i=1;i<300;i++){ // this.feedContent.length
+  for(var i=1;i<maxLimit;i++){ //
     var listItem = this.feedContent[i];
 
     // Check AdGroup Names or extra space at beginning

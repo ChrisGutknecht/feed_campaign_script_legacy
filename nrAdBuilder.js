@@ -1654,6 +1654,7 @@ function FeedHandler(feedurl, columnSeparator, columnMapper, campaignName, feedC
 */
 FeedHandler.prototype.getAdGroupObjects = function() {
   var adGroupObjects = [];
+  Logger.log("Building adgroup objects. Total input : " + feedContent.length);
 
   for(var i=1;i<this.feedContent.length;i++){
     var listItem = this.feedContent[i];
@@ -1718,7 +1719,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     }}
 
   }
-  if(DEBUG_MODE == 1) {Logger.log("adGroupObjects.length : " + adGroupObjects.length + " with campaignName " + this.campaignName); Logger.log(" ");}
+  Logger.log("validated adGroupObjects : " + adGroupObjects.length + " for campaign " + this.campaignName); Logger.log(" ");}
   return adGroupObjects;
 };
 

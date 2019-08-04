@@ -1719,7 +1719,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     }
 
   } // END For loop
-  
+
   Logger.log("validated adGroupObjects : " + adGroupObjects.length + " for campaign " + this.campaignName); Logger.log(" ");
   return adGroupObjects;
 };
@@ -1767,7 +1767,7 @@ FeedHandler.prototype.getNonSaleAdGroupList = function(adGroupObjects) {
 * @param {string} keyword
 * @return {bool} foundInSuggest
 **/
-FeedHandler.prototype.foundInGoogleSuggest = funtion(keyword) {
+FeedHandler.prototype.foundInGoogleSuggest = function(keyword) {
   var foundInSuggest = 0;
   var xmlRequestUrl = "https://suggestqueries.google.com/complete/search?output=toolbar&hl="+ NEW_CAMPAIGN_CONFIG.useHistoricalQueries.language +"&q=" + keyword;
   var xmlDocument = XmlService.parse(UrlFetchApp.fetch(xmlRequestUrl).getContentText());

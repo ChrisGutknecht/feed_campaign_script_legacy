@@ -82,8 +82,7 @@ function nrCampaignBuilder(feedContent) {
   INPUT_SOURCE_MODE = typeof feedContent == "undefined" ? "ADBUILD" : "SQA";
   Logger.log("INPUT_SOURCE_MODE : " + INPUT_SOURCE_MODE); Logger.log(" ");
 
-  // Log GA event
-  init();
+  // Log GA event: init();
 
   // Prepate Error Logging
   var errorLogger = new ErrorLogger(SCRIPT_NAME);
@@ -156,7 +155,6 @@ function nrCampaignBuilder(feedContent) {
 
     // CG 2019-01-08: NEW extra method "setLabel()" for script-speficic scopes (webworks)
     // Example value : "nrSCOPE_Non-Brand (Vans)"
-
     if(typeof AG_SCOPE_LABEL_FALLBACK !== "undefined") {
 			Logger.log("Applying scope label...");
 			adGroupHandler.setScopeLabel(currentAllAdGroups.getList());
@@ -1699,7 +1697,26 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     }
 
     if(adGroupObject.campaign != this.campaignName) continue;
-    else adGroupObjects.push(adGroupObject);
+
+    // Push All adgroups in feed to adgroup Objects
+    if(NEW_CAMPAIGN_CONFIG.useQueryData == 0) adGroupObjects.push(adGroupObject);
+
+    // Only push adgroups if query is found in Google Suggest or minKPI condition is satisfied
+    var cleandKeyword = adGroupObject.kwWithUnderscore.replace(/_/g," ").toLowerCase();
+    var adGroupPushed = 0;
+
+    // Case I: Google Suggest
+    if(NEW_CAMPAIGN_CONFIG.useQueryData == 1 && this.foundInGoogleSuggest(cleandKeyword) == 1) {
+      adGroupObjects.push(adGroupObject);
+      adGroupPushed = 1;
+    }
+
+    // Case II: Check historical queries
+    if(adGroupPushed == 0 && NEW_CAMPAIGN_CONFIG.useQueryData == 1 && this.checkIfKpiLevelReached(cleandKeyword) == 1) {
+      adGroupObjects.push(adGroupObject);
+      adGroupPushed = 1;
+    }}
+
   }
   if(DEBUG_MODE == 1) {Logger.log("adGroupObjects.length : " + adGroupObjects.length + " with campaignName " + this.campaignName); Logger.log(" ");}
   return adGroupObjects;
@@ -1742,6 +1759,67 @@ FeedHandler.prototype.getNonSaleAdGroupList = function(adGroupObjects) {
   }
   return nonSaleAdGroupList;
 };
+
+
+/**
+* @param {string} keyword
+* @return {bool} foundInSuggest
+**/
+FeedHandler.prototype.foundInGoogleSuggest = funtion(keyword) {
+  var foundInSuggest = 0;
+  var xmlRequestUrl = "https://suggestqueries.google.com/complete/search?output=toolbar&hl="+ NEW_CAMPAIGN_CONFIG.useHistoricalQueries.language +"&q=" + keyword;
+  var xmlDocument = XmlService.parse(UrlFetchApp.fetch(xmlRequestUrl).getContentText());
+
+  try {
+    firstEntry = xmlDocument.getRootElement().getChildren('CompleteSuggestion')[0].getChild('suggestion').getAttribute('data').getValue();
+    foundInSuggest = 1;
+  } catch(e) {if(DEBUG_MODE === 1) Logger.log("No Google suggest entry found for : " + keyword);}
+
+  return foundInSuggest;
+}
+
+
+/**
+* @param string keyword,
+* @return bool levelReached
+*/
+FeedHandler.prototype.checkIfKpiLevelReached = function(keyword) {
+  var levelReached = 0;
+  var queryConfig = NEW_CAMPAIGN_CONFIG.useQueryData;
+
+  var minImpressions = queryConfig.filterKPI == "Impressions" ?queryConfig.minAmount_KPI : 0;
+  var minClicks = queryConfig.filterKPI == "Clicks" ? queryConfig.minAmount_KPI : 0;
+
+  var dateYesterday =  new Date().toISOString().substring(0, 10).replace(/-/g, "");
+  var dateRange = queryConfig.startingDateRange + "," + dateYesterday;
+  Logger.log(dateRange);
+
+  try {
+
+    var selectQuery =
+        'SELECT Query,KeywordTextMatchingQuery,QueryMatchTypeWithVariant,CampaignName,AdGroupName,Impressions, Clicks,Cost,Ctr,AverageCpc ' +
+        'FROM SEARCH_QUERY_PERFORMANCE_REPORT ' +
+        'WHERE Query = "' + keyword + '" AND Impressions >= ' + minImpressions + '  AND Clicks >= ' + minClicks + ' ' +
+        'DURING ' + dateRange;
+    sqReport = AdsApp.report(selectQuery);
+
+  } catch (e) {Logger.log("SearchQuerySelectException: " + e); }
+
+  try {
+    sqReportRows = sqReport.rows();
+    sqReportRows.next();
+  } catch (e) { return Logger.log("Empty report");}
+
+  try {
+    if (sqReportRows.hasNext()) {
+      var row = sqReportRows.next();
+      Logger.log(JSON.stringify(row));
+      levelReached = 1;
+    }
+  } catch (e) { Logger.log(e)}
+
+  return levelReached;
+}
 
 
 /*

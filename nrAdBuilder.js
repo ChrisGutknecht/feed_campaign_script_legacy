@@ -1717,6 +1717,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       adGroupObjects.push(adGroupObject);
       adGroupPushed = 1;
     }
+    if(adGroupObjects.length % 10 == 0) Logger.log(adGroupObjects.length + " adgroups done");
 
   } // END For loop
 

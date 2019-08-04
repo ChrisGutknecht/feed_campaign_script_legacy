@@ -1732,7 +1732,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
         "adGroupName" : adGroupObject.adGroup
       };
 
-      Logger("cleanedKeyword : " +  cleanedKeyword + " found in Cache : " + prevalidatedKeywords.indexOf(cleanedKeyword));
+      Logger.log("cleanedKeyword : " +  cleanedKeyword + " found in Cache : " + prevalidatedKeywords.indexOf(cleanedKeyword));
 
       // Case I: Found in validatedKeywords Cache
       if(prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {

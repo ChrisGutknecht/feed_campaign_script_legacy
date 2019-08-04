@@ -1716,9 +1716,10 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     if(adGroupPushed == 0 && NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1 && this.checkIfKpiLevelReached(cleandKeyword) == 1) {
       adGroupObjects.push(adGroupObject);
       adGroupPushed = 1;
-    }}
+    }
 
-  }
+  } // END For loop
+  
   Logger.log("validated adGroupObjects : " + adGroupObjects.length + " for campaign " + this.campaignName); Logger.log(" ");
   return adGroupObjects;
 };

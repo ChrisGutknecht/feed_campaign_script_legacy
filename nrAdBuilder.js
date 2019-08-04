@@ -1672,7 +1672,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
   var KEYWORD_VALIDATION_LOG = [];
 
-  for(var i=1;i<200;i++){ // this.feedContent.length
+  for(var i=1;i<300;i++){ // this.feedContent.length
     var listItem = this.feedContent[i];
 
     // Check AdGroup Names or extra space at beginning

@@ -1654,7 +1654,7 @@ function FeedHandler(feedurl, columnSeparator, columnMapper, campaignName, feedC
 */
 FeedHandler.prototype.getAdGroupObjects = function() {
   var adGroupObjects = [];
-  Logger.log("Building adgroup objects. Total input : " + feedContent.length);
+  Logger.log("Building adgroup objects. Total input : " + this.feedContent.length);
 
   for(var i=1;i<this.feedContent.length;i++){
     var listItem = this.feedContent[i];

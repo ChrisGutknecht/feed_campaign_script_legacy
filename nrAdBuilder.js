@@ -4683,7 +4683,6 @@ function StorageHandler(){
       } catch(e){ Logger.log("EmptyResponseException : No results were returned."); Logger.log("Specific error : " + e); Logger.log(" ");}
     }
 
-    Logger.log(results);
     return results;
   }
 

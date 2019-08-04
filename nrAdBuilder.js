@@ -144,7 +144,6 @@ function nrCampaignBuilder(feedContent) {
     // 1.2 Get feed data per campaign
     var feedHandler = new FeedHandler(FEED_URL, COLUMN_SEPARATOR, columnMapper, campaignName, feedContent);
 
-    Logger.log("Test call prior to getAdGroupObjects Call");
     fullAdGroupObjects = feedHandler.getAdGroupObjects();
     var shouldBeActiveAdGroups = new AdGroupList(feedHandler.getAdGroupList(fullAdGroupObjects));
 

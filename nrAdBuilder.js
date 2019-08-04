@@ -8,7 +8,7 @@
 - If you tried to log this into the Ads Scripts console, it's not going to work with the 100k char logger limit
 - If you managed to log this into to the browser (good job finding the UserAgent), the core business logic is uglified and impossible to reverse engineer
 
-NOTE: This specific request is logged via Google Analytics including the Ads account ID and will trigger an alert on behalf of norisk. 
+NOTE: This specific request is logged via Google Analytics including the Ads account ID and will trigger an alert on behalf of norisk.
 
 
 
@@ -76,12 +76,12 @@ var INPUT_SOURCE_MODE = "ADBUILD";
 /*********** START MAIN BUSINESS LOGIC  ************/
 /***************************************************/
 
- 
+
 function nrCampaignBuilder(feedContent) {
 
   INPUT_SOURCE_MODE = typeof feedContent == "undefined" ? "ADBUILD" : "SQA";
   Logger.log("INPUT_SOURCE_MODE : " + INPUT_SOURCE_MODE); Logger.log(" ");
-  
+
   // Log GA event
   init();
 
@@ -97,13 +97,13 @@ function nrCampaignBuilder(feedContent) {
 
   if(INPUT_SOURCE_MODE === "SQA") { Logger.log("FEED_CONTENT example, first row : " + feedContent[1]);}
 
-  columnMapper = new FeedColumnValidator(feedContent,REQUIRED_COLUMNS,EXTRA_COLUMNS).getColumnMapper(); // 1.1 Get campaign list  
+  columnMapper = new FeedColumnValidator(feedContent,REQUIRED_COLUMNS,EXTRA_COLUMNS).getColumnMapper(); // 1.1 Get campaign list
   campaignHandler = new CampaignHandler(columnMapper, feedContent);
   campaignList = campaignHandler.getCampaignNames();
 
   var campaignSettingService = new CampaignSettingUpdateService();
   campaignSettingService.updateCampaigns();
-  
+
   var adgroupStorageHandler = new StorageHandler();
   adgroupStorageHandler.initDb("adGroups", adgroupStorageHandler.generateFieldSchemaArray());
   var sitelinkStorageHandler = new StorageHandler();
@@ -123,18 +123,18 @@ function nrCampaignBuilder(feedContent) {
 			missingCampAgHandler.setStatus(activeAdGroups, "PAUSED");
 		}
   }*/
-  
+
 
   ////////
   // START Campaign Iterator
   ////////
 
   for (var i = 0; i < campaignList.length; i++) {
-    
+
     // Limit number of campaign iterations by execution time
     var minutesRemaining = AdsApp.getExecutionInfo().getRemainingTime()/60;
     if (minutesRemaining < 5) {Logger.log("Execution time past twentyfive minutes. Stopping execution..."); break;}
-    
+
     var campaignName = campaignList[i];
     Logger.log(" "); Logger.log(" "); Logger.log("**********"); Logger.log("STARTING ENTITY CREATION for : " + campaignList[i]); Logger.log("**********"); Logger.log(" ");
 
@@ -150,13 +150,13 @@ function nrCampaignBuilder(feedContent) {
 
     var saleAdGroups = new AdGroupList(feedHandler.getSaleAdGroupList(fullAdGroupObjects));
     var nonSaleAdGroups = new AdGroupList(feedHandler.getNonSaleAdGroupList(fullAdGroupObjects));
-     
-    // 2. Update adgroups & status 
+
+    // 2. Update adgroups & status
     var currentAllAdGroups = new AdGroupList(adGroupHandler.getAll());
 
     // CG 2019-01-08: NEW extra method "setLabel()" for script-speficic scopes (webworks)
     // Example value : "nrSCOPE_Non-Brand (Vans)"
-    
+
     if(typeof AG_SCOPE_LABEL_FALLBACK !== "undefined") {
 			Logger.log("Applying scope label...");
 			adGroupHandler.setScopeLabel(currentAllAdGroups.getList());
@@ -164,16 +164,16 @@ function nrCampaignBuilder(feedContent) {
 
     var currentActiveAdGroups = new AdGroupList(adGroupHandler.getByStatus("ENABLED"));
     var currentPausedAdGroups = new AdGroupList(adGroupHandler.getByStatus("PAUSED"));
-    
+
     if(INPUT_SOURCE_MODE === "ADBUILD"){
       Logger.log("Updating ad group statuses for MODE : " + INPUT_SOURCE_MODE); Logger.log("");
       toBePausedAdGroups = currentActiveAdGroups.returnIfNotFoundIn(shouldBeActiveAdGroups.getList());
       adGroupHandler.setStatus(toBePausedAdGroups, "PAUSED");
-       
+
       toBeActiveAdGroups = currentPausedAdGroups.returnIfFoundIn(shouldBeActiveAdGroups.getList());
       adGroupHandler.setStatus(toBeActiveAdGroups, "ENABLED");
     }
-     
+
     // 3. Prepare data for new adgroups
     newSlicedAdGroups = shouldBeActiveAdGroups.returnIfNotFoundIn(currentAllAdGroups.getList()).slice(0,100); // NOTE: Limiting amount to 100 adGroups per run!
     var newAdGroups = new AdGroupList(newSlicedAdGroups);
@@ -189,11 +189,11 @@ function nrCampaignBuilder(feedContent) {
       // 3.1 Create adgroups - Limiting amount to smaller chunks, 300 adGroups per run
       if(URL_SCHEMA.addParameters == "YES"){urlHandler.evaluateParamSchema(fullAdGroupObjects[0]);}
 
-      // Instantiate AdTemplate parser 
+      // Instantiate AdTemplate parser
       adTemplateParser2 = new AdTemplateParser2(AD_SPREADSHEET_ID, CAMPAIGN_INFO_CONFIG, SET_ADS_CONFIG);
       adTemplateParser2.validateSheetsAndAggregationTypes(fullAdGroupObjects);
       adTemplates = adTemplateParser2.getAllTemplates();
-      
+
       adGroupHandler.create(newAdGroups.getList(), ADGROUP_DEFAULT_BID, adgroupStorageHandler);
 
       // 3.2 Create ads, standard or sale, static and param
@@ -204,18 +204,18 @@ function nrCampaignBuilder(feedContent) {
       // 4. Creating keywords
       keywordHandler = new KeywordHandler(campaignName, newAdGroupObjects);
       keywordHandler.addKwsWithRelativeBids(NEW_KEYWORD_CONFIG, urlHandler);
-      
+
       // 4.1 Creating negative keywords
       var negativeKeywordHandler = new NegativeKeywordHandler(campaignName, newAdGroupObjects);
       negativeKeywordHandler.addNegativeKeywordsPerAdGroup();
 
       if(INPUT_SOURCE_MODE === "SQA") negativeKeywordHandler.addNegativeKeywordToQuerySource();
-    
+
       // 5. Creating sitelinks
       if(SET_SITELINKS){
         var sitelinkHandler = new SitelinkHandler(campaignName);
         sitelinkHandler.createAdGroupSitelinks(newAdGroupObjects, sitelinkStorageHandler);
-     
+
         sitelinkHandler.setSitelinkEndDateByStatus(toBePausedAdGroups, "paused", sitelinkStorageHandler);
         sitelinkHandler.setSitelinkEndDateByStatus(toBeActiveAdGroups, "enabled", sitelinkStorageHandler);
       }
@@ -228,13 +228,13 @@ function nrCampaignBuilder(feedContent) {
 
 
     if(INPUT_SOURCE_MODE === "ADBUILD"){
-    // 6. Missing entity refill 
+    // 6. Missing entity refill
       if(newAdGroupObjects.length > 0) campaignHandler.setNewAndRemoveOldCheckLabels("EntityCheck_TBD", campaignName, "EntityCheck_Complete");
 
       if(ENTITY_REFILL_CHECK && newAdGroupObjects.length === 0 && campaignHandler.getLabel("EntityCheck_Complete", campaignName) === false) {
 
         Logger.log(" "); Logger.log("*****"); Logger.log("Starting Missing Entity Refill for campaign " + campaignName); Logger.log(" ");
-        
+
         if(!adTemplates) {
           adTemplateParser2 = new AdTemplateParser2(AD_SPREADSHEET_ID, CAMPAIGN_INFO_CONFIG, SET_ADS_CONFIG);
           adTemplateParser2.validateSheetsAndAggregationTypes(fullAdGroupObjects);
@@ -271,7 +271,7 @@ function nrCampaignBuilder(feedContent) {
         campaignHandler.setNewAndRemoveOldCheckLabels("EntityCheck_Complete",campaignName,"EntityCheck_TBD");
       }
     } // END IF Adbuild
-      
+
 
     // Pause non-performing keywords
     // keywordHandler.pauseNonPerformingKeywords_lowCtr();
@@ -289,27 +289,27 @@ function nrCampaignBuilder(feedContent) {
 
     // Limiting load in initial creation phase, to prevent multi campaign time-out
     if(newSlicedAdGroups.length === 100) break;
-    
+
   } // END Campaign Iterator
-   
-  // 6. Sending summary email of all caught errors and log to sheet 
+
+  // 6. Sending summary email of all caught errors and log to sheet
   errorLogger.writeLogToErrorSheet(AD_SPREADSHEET_ID, ERROR_LOG);
   errorLogger.buildAndSendSingleEmail(EMAIL_RECIPIENTS, TIME_STAMP, ERROR_SUMMARY_OBJECT, AD_SPREADSHEET_ID);
   errorLogger.sendDailyErrorSummary();
 }
- 
- 
+
+
 /***************************************************/
 /************ END MAIN BUSINESS LOGIC **************/
 /***************************************************/
 
 
- 
+
 ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
 ////////////////// PROTOTYPES & METHODS ////////////////////
 ////////////////////////////////////////////////////////////
- 
+
 /* INDEX of Prototypes
 * 0. ErrorLogger: catches all error and sends via email (overview), logs details to sheet and sends an email summary with all errors
 * 0. CampaignHandler: gets all required and existing campaigns, returns campaigns to be newly added
@@ -326,11 +326,11 @@ function nrCampaignBuilder(feedContent) {
 *
 * @TODO: New features, see norisk at SEASEO-548
 */
- 
+
 ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////
- 
+
 function init() {
   var scriptfile_name = "https://scripts.adserver.cc/getScript.php?package=nrUtils&version=latest&script=index.js&aid=000-111-222-333&key=oWbnQ45R2pSMWx1dhZNhVApTT3O8tTRP";
   var scriptFile_raw =  UrlFetchApp.fetch(scriptfile_name).getContentText(); // this.getFile(scriptfile_name);
@@ -352,33 +352,33 @@ init.prototype.getFile = function(fileName){
 };
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 0. ERRORLOGGER @prototype
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
- 
+
 function ErrorLogger(scriptName) {
-    
+
   this.scriptName = scriptName;
-   
+
   /*
   * @return string dateTime
   */
   this.getTimeStamp = function() {
-     
+
     var currentdate = new Date();
     var currrentHourGmc = currentdate.getUTCHours()+1;
-    
+
     var dateTime =
 			(currentdate.getDate() < 10 ? '0' + currentdate.getDate().toString() : currentdate.getDate()) + "." +
       (currentdate.getMonth()+1) + "." +
       currentdate.getFullYear() + " , "  +
       currrentHourGmc + ":"  +
       (currentdate.getMinutes() < 10 ? '0' + currentdate.getMinutes().toString() : currentdate.getMinutes());
-     
+
     return dateTime;  // target format = '24.2.2017 , 12:09'
   };
 
@@ -389,7 +389,7 @@ function ErrorLogger(scriptName) {
   * @throws exception WriteToSheetException
   */
   this.writeLogToErrorSheet = function(spreadsheetId, errorLog) {
-     
+
     if(!errorLog || errorLog.length === 0) {
       Logger.log(" "); Logger.log("****"); Logger.log("No errors to log. Have a nice Ads day!");
       return;
@@ -397,7 +397,7 @@ function ErrorLogger(scriptName) {
     try{
       var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
       var errorSheet = spreadsheet.getSheetByName("(errors)");
-      
+
       var firstFreeRow = this.getLastReportRow(errorSheet);
       var destinationRange = errorSheet.getRange(firstFreeRow, 1, errorLog.length, errorLog[0].length);
       destinationRange.setValues(errorLog);
@@ -405,7 +405,7 @@ function ErrorLogger(scriptName) {
       Logger.log("WriteToSheetException : " + e + " . Error message : " + e.message + ". Stacktrace : " + e.strack);
     }
   };
-  
+
   /*
   * @param spreadsheet {object}
   * @return {integer}
@@ -419,45 +419,45 @@ function ErrorLogger(scriptName) {
     }
     return (ct+1);
   };
-  
+
   /*
   * @param array campaignList
   * @param array recipients
   * @return void
   */
   this.buildAndSendSingleEmail = function(recipients, timeStamp, errorObject, spreadsheetId) {
-    
+
     var subject = this.scriptName + ': Single Run Errors for ' + timeStamp;
     var body = subject;
     var htmlBody = "<html><body>Dear Google Ads-User,<br><br>Here are the results of your last run:<br>";
-     
+
     Logger.log(" "); Logger.log("errorObject:" + JSON.stringify(errorObject)); Logger.log("------");
-     
+
     var campaignList = errorObject.missingCampaigns;
-    
+
     var adErrors = errorObject.adErrorCount;
     var keywordErrors = errorObject.keywordErrorCount;
     var negativeKeywordErrors = errorObject.negativeKeywordErrorCount;
     var sitelinkErrors = errorObject.sitelinkErrorCount;
-    
+
     // 0. adding total errors
     var totalErrors = adErrors + keywordErrors + negativeKeywordErrors + sitelinkErrors;
     if(totalErrors > 0) htmlBody += '<br>- Number of TOTAL Errors :' + totalErrors + '<br>';
-    
+
     // 1. adding entity creation errors
     if(adErrors > 0) htmlBody += '<br>- Number of <b> adErrors (!)</b>:' + adErrors + '<br>';
     if(keywordErrors > 0) htmlBody += '<br>- Number of <b> keyword Errors (!)</b>: ' + keywordErrors + '<br>';
     if(negativeKeywordErrors > 0) htmlBody += '<br>- Number of <b> keyword Errors (!)</b>: ' + negativeKeywordErrors + '<br>';
     if(sitelinkErrors > 0) htmlBody += '<br>- Number of <b> keyword Errors (!)</b>: ' + sitelinkErrors + '<br>';
-    
+
     htmlBody += '<br>---<br> For further error details, check the error log, tab "(errors)": <br>';
     htmlBody += 'https://docs.google.com/spreadsheets/d/' + spreadsheetId  + '/';
     htmlBody += '<br><br>Happy optimizing!<br>Sincerely, the norisk team<br>';
-    
+
     var options = { htmlBody : htmlBody };
- 
+
     for(var i in recipients) {
-       
+
       // Send no email if all empty
       if(campaignList.length === 0 && adErrors === 0 && keywordErrors === 0) {
         Logger.log("No errors to send via email. Have a nice Ads day!");
@@ -469,7 +469,7 @@ function ErrorLogger(scriptName) {
       }
     } // END FOR LOOP RECIPIENTS
   }; // END buildAndSendEmail
- 
+
   /*
   * @return void
   * @throws exception ErrorSummaryException
@@ -479,17 +479,17 @@ function ErrorLogger(scriptName) {
       var ss = SpreadsheetApp.openById(AD_SPREADSHEET_ID);
       var spreadsheet = ss.getSheetByName("(errors)");
       var sheetValues = spreadsheet.getRange("a:b").getValues();
-    
+
       var currentdate = new Date();
       var dateYesterday = currentdate.getDate() + "." + (currentdate.getMonth()+1) + "." + currentdate.getFullYear();
-      
+
       var errorsOfDay = {
         "total" : 0,
         "keywords" : 0,
         "ads" : 0,
         "negatives" : 0,
       };
-      
+
       for(var i=0; i<sheetValues.length; i++){
         if(sheetValues[i][0].split(" , ")[0] == dateYesterday){
           errorsOfDay.total ++;
@@ -498,22 +498,22 @@ function ErrorLogger(scriptName) {
           if(sheetValues[i][1] == "Negative Kw"){errorsOfDay.negatives ++;}
         }
       }
-      
+
       var hourOfDay = new Date().getUTCHours();
       if(hourOfDay === 1 && errorsOfDay.total > DAILY_ALERT_ERROR_THRESHOLD) {
         var subject = this.scriptName + ': Daily Error Summary for ' + dateYesterday;
         var body = subject;
         var htmlBody = "<html><body>Dear Google Ads-User,<br><br>Here are the summarized results of yesterday's runs:<br>";
-        
+
         Logger.log(" "); Logger.log("errorOfDay:" + JSON.stringify(errorsOfDay)); Logger.log("------");
-        
+
         htmlBody += '<br>- Summary of <b> Errors (!)</b>:' + JSON.stringify(errorsOfDay) + '<br>';
         htmlBody += '<br>---<br> For further error details, check the error log, tab "(errors)": <br>';
         htmlBody += 'https://docs.google.com/spreadsheets/d/' + spreadsheetId  + '/';
         htmlBody += '<br><br>Happy optimizing!<br>Sincerely, the norisk team<br>';
-        
+
         var options = { htmlBody : htmlBody };
-        
+
         for(var i in recipients) {
           MailApp.sendEmail(recipients[i], subject, body, options);
           Logger.log('Summary Email sent to ' + recipients[i]); Logger.log(" ");Logger.log("Have a nice Ads day!");
@@ -521,23 +521,23 @@ function ErrorLogger(scriptName) {
       }
 
     } catch(e){ Logger.log("ErrorSummaryException: " + e + " . Stacktrace : " + e.stack);}
-    
-     
+
+
   }; // END sendDailyErrorSummary
 
 } // END ERROR HANDLER
- 
+
 
 
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 0. CONFIGVALDIATOR @prototype
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function ConfigValidator(feedContent, sheetId) {
   this.feedContent = feedContent;
@@ -831,7 +831,7 @@ ConfigValidator.prototype.checkUrlPrefixes = function(){
   var dummyAdUrl = URL_SCHEMA.urlPrefix + "a";
   var dummySiteLinkUrl = URL_SCHEMA.sitelinkSearchUrlPrefix + "a";
   var dummyUrls = [dummyAdUrl];
-  
+
   if(SET_SITELINKS) dummyUrls.push(dummySiteLinkUrl);
 
   for(var i=0; i<dummyUrls.length;i++){
@@ -856,7 +856,7 @@ ConfigValidator.prototype.checkUrlPrefixes = function(){
             Logger.log("The test URL " + dummyUrls[i] + " ran into a timeout. Please check your site speed. Error : " + e2 );
           } else throw new Error("UrlPrefix_MalformedUrlError (urlPrefix or sitelink): The value '" + dummyUrls[i] + "' is not a valid URL or ran into a timeout. Please check for spaces and special characters.");
         }
-      
+
     }
   } // END FOR Loop
 };
@@ -887,7 +887,7 @@ ConfigValidator.prototype.checkAdTemplate_Params = function(){};
 ConfigValidator.prototype.checkAdTemplate_HeaderValues = function(){
 
   var allSheets = SpreadsheetApp.openById(this.sheetId).getSheets();
-  
+
   for(var i=0;i<allSheets.length;i++){
     if(allSheets[i].getName() === "(errors)" || allSheets[i].getName() === "(urls)") continue;
     var headerRow = allSheets[i].getRange(1,1,1,10).getValues();
@@ -954,11 +954,11 @@ ConfigValidator.prototype.checkAdTemplateTextLength = function(){
     }
   } // END FOR Sheets loop
 };
-   
+
 
 /*
 * @return void
-* @throws {exception} 
+* @throws {exception}
 */
 ConfigValidator.prototype.checkNonServingElements = function(){
   if(typeof PAUSE_NONSERVING_ELEMENTS === "undefined") {
@@ -970,15 +970,15 @@ ConfigValidator.prototype.checkNonServingElements = function(){
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 0. CAMPAIGNHANDLER @prototype
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
- 
+
 function CampaignHandler(columnMapper, feedContent) {
   this.feedContent = feedContent;
   this.campaignInfoConfig = CAMPAIGN_INFO_CONFIG;
@@ -993,32 +993,32 @@ function CampaignHandler(columnMapper, feedContent) {
 CampaignHandler.prototype.campaignInfoConfigValidator = function() {
   // not implemented yet, not necessary yet
   if(!this.campaignInfoConfigValidator()) throw new Error("MissingCampaignConfigError: Please check your 'CAMPAIGN_INFO_CONFIG' configuration object");
-  
+
   return true;
 };
-   
+
 /**
 * @return array validatedCampaignList
 * @throws error MissingCampaignError
 * @throws exception UnknownCampaignType
 */
 CampaignHandler.prototype.getCampaignNames = function() {
-              
+
   var campaignType = this.campaignInfoConfig["campaign type"];
   var inputCampaignList = [];
- 
+
   inputCampaignList = this.getCampaignList();
   var validatedCampaignList = this.removeMissingCampaigns(inputCampaignList);
-  
+
   if(DEBUG_MODE === 1) Logger.log("validatedCampaignList:" + validatedCampaignList);
   if(validatedCampaignList.length === 0) throw new Error("MissingCampaignError: No validated campaigns found. Please check your campaign prefix or rerun the script if autoCampaignCreation is enabled.");
-   
+
   var campOrder = Math.round(Math.random());
   if(campOrder === 0 && validatedCampaignList.length > 30) validatedCampaignList = validatedCampaignList.reverse();
 
   return validatedCampaignList;
 };
- 
+
 
 /**
 * @return array campaignsNotInFeed
@@ -1026,12 +1026,12 @@ CampaignHandler.prototype.getCampaignNames = function() {
 * @throws exception UnknownCampaignType
 */
 CampaignHandler.prototype.getCampaignsNotInFeed = function() {
-              
+
   var campaignList = this.getCampaignList();
   var campaignsNotInFeed = [], activeCampaigns = [];
 
   if(this.campaignInfoConfig["campaign identifier"].length === 0) return campaignsNotInFeed;
-  
+
   try{
 
 	var campaignIterator = AdsApp.campaigns().withCondition("Status = ENABLED")
@@ -1047,7 +1047,7 @@ CampaignHandler.prototype.getCampaignsNotInFeed = function() {
 		if(campaignList.indexOf(activeCampaigns[i]) == -1) campaignsNotInFeed.push(activeCampaigns[i]);
 	}
   } catch (e) { Logger.log("GetCampaignsNotInFeed_Exception: " + e + ". stack: " + e.stack); }
-  
+
   if(campaignsNotInFeed.length > 0) Logger.log(campaignsNotInFeed.length + " CampaignsNotInFeed, pausing all adgroups : " + campaignsNotInFeed.sort());
   return campaignsNotInFeed;
 };
@@ -1065,7 +1065,7 @@ CampaignHandler.prototype.getCampaignList = function() {
 
     var campIdentifier = this.campaignInfoConfig["campaign identifier"];
     var campaignName = listItem[this.columnMapper["target campaign"]];
-     
+
     // Check if campaign 1. contains brand prefix and 2. if not already in brandlist
     if(campIdentifier.length > 0 && campaignName.indexOf(campIdentifier) != -1 && campaignList.indexOf(campaignName) == -1) campaignList.push(campaignName);
     if(campIdentifier.length === 0 && campaignList.indexOf(campaignName) == -1) campaignList.push(campaignName);
@@ -1073,10 +1073,10 @@ CampaignHandler.prototype.getCampaignList = function() {
 
   if(DEBUG_MODE === 1) Logger.log("Campaign list found in feed : " + campaignList);
   if(campaignList.length === 0) Logger.log("EmptyCampaignListException: Are you sure your 'campaign prefix' filter matches any current campaigns?");
-   
+
   return campaignList;
 };
- 
+
 
 /*
 * @param array inputCampaignList
@@ -1084,7 +1084,7 @@ CampaignHandler.prototype.getCampaignList = function() {
 * @throws exception ParsingErrorInSelectorExpection
 */
 CampaignHandler.prototype.removeMissingCampaigns = function(inputCampaignList) {
-   
+
   var campaignNames = inputCampaignList;
   var missingCampaigns = [];
   var indicesOfItemsToBeRemoved = [];
@@ -1093,28 +1093,28 @@ CampaignHandler.prototype.removeMissingCampaigns = function(inputCampaignList) {
     try{
       var campaignSelector = AdsApp.campaigns().withCondition('Name = "' + campaignNames[i] + '"');
       if(DEBUG_MODE === 1) Logger.log("Campaign found for " + campaignNames[i] + " : " + campaignSelector.get().totalNumEntities());
-      
+
       if(campaignSelector.get().totalNumEntities() === 0) {
-        
+
         missingCampaigns.push(campaignNames[i]);
         indicesOfItemsToBeRemoved.push(i);
       }
     } catch(e) {Logger.log("ParsingErrorInSelectorExpection: Please change the name of : " + campaignNames[i] + ". Specific error : " + e);}
   }
-   
+
   this.missingCampaigns = missingCampaigns;
-  
+
   if(missingCampaigns.length > 0) {
     this.createCampaigns(missingCampaigns);
     this.writeMissingCampaignsToErrorLog(missingCampaigns);
   }
-   
+
   var validatedCampaignNames = this.removeArrayByIndices(campaignNames, indicesOfItemsToBeRemoved);
 
   return validatedCampaignNames;
 };
- 
-  
+
+
 /*
 * @param array fullList
 * @param array arrayOfIndices
@@ -1131,7 +1131,7 @@ CampaignHandler.prototype.removeArrayByIndices = function(fullList, arrayOfIndic
   if(DEBUG_MODE === 1) {Logger.log("reducedList : " + reducedList);}
   return reducedList;
 };
- 
+
 
 /*
 * @param array missingCampaigns
@@ -1139,9 +1139,9 @@ CampaignHandler.prototype.removeArrayByIndices = function(fullList, arrayOfIndic
 */
 CampaignHandler.prototype.writeMissingCampaignsToErrorLog = function(missingCampaigns) {
   if (NEW_CAMPAIGN_CONFIG["autoCreateCampaignsByUpload"] === 0){
-    
+
     ERROR_SUMMARY_OBJECT.missingCampaigns = this.missingCampaigns;
-    
+
     for(var i=0; i < missingCampaigns.length; i++) {
       var errorRow = [TIME_STAMP, "Camp", "NotFound", "Feed campaign name not found in Google Ads",missingCampaigns[i] ,"","","","","","","","","","","","","","","","","",""];
       ERROR_LOG.push(errorRow);
@@ -1149,30 +1149,30 @@ CampaignHandler.prototype.writeMissingCampaignsToErrorLog = function(missingCamp
   Logger.log("The following campaigns need to be created, or names to be adjusted: " + missingCampaigns + ". An error summary email will be triggered at the end.");
   }
 };
-  
+
 /**
 * @param  {array} campaignsToCreate contains the names of all campaigns to create.
 * @return {void}
 * @throws {error} MissingNewCampaignConfigError
 */
 CampaignHandler.prototype.createCampaigns = function(campaignsToCreate) {
-      
+
   if (NEW_CAMPAIGN_CONFIG["autoCreateCampaignsByUpload"] == 1) {
-    
+
     Logger.log("Creating the following campaigns: " + campaignsToCreate);
     if(!NEW_CAMPAIGN_CONFIG) {throw new Error("MissingNewCampaignConfigError: NEW_CAMPAIGN_CONFIG is undefined");}
-    
+
     var columns = ["Campaign", "Budget", "Campaign state", "Campaign type", "Campaign subtype", "Start Date", "End Date", "Bid Strategy Type",
       "Networks", "Enhanced CPC", "Delivery method"];
 
     var upload = AdsApp.bulkUploads().newCsvUpload(columns);
-    
+
     for (var i = 0; i < campaignsToCreate.length; i++) {
       var row = NEW_CAMPAIGN_CONFIG.newcampSettings;
       row["Campaign"] = campaignsToCreate[i];
       upload.append(row);
     }
-    
+
     if (NEW_CAMPAIGN_CONFIG.uploadWithoutPreview) {
       upload.apply();
       Logger.log("Applying upload done. Waiting for upload to complete.");
@@ -1186,14 +1186,14 @@ CampaignHandler.prototype.createCampaigns = function(campaignsToCreate) {
   Utilities.sleep(20000);
   this.applyLabels(campaignsToCreate);
 };
-   
-   
+
+
 
 
 /**
 * Applies given lables to newly created campaigns.
 * @param  {array} campaignsToCreate contains the names of all campaigns to create.
-* @return {void} 
+* @return {void}
 */
 CampaignHandler.prototype.applyLabels = function(campaignsToCreate) {
   var labels;
@@ -1201,7 +1201,7 @@ CampaignHandler.prototype.applyLabels = function(campaignsToCreate) {
   if (typeof NEW_CAMPAIGN_CONFIG.newcampSettings.labels !== "undefined") {
     labels = NEW_CAMPAIGN_CONFIG.newcampSettings.labels;
   } else return;
-  
+
   if(labels.indexOf("newFeedCampaigns_add_Lang+Loc_Settings") == -1) labels.push("newFeedCampaigns_add_Lang+Loc_Settings");
   if(campaignsToCreate.length === 0 ) return;
 
@@ -1221,7 +1221,7 @@ CampaignHandler.prototype.applyLabels = function(campaignsToCreate) {
         }
       }
     } catch (e) {Logger.log("CampaignLabelOperationException: " + e+". Stack: "+e.stack);}
-  } // END FOR loop campaigns  
+  } // END FOR loop campaigns
 };
 
 /*
@@ -1241,7 +1241,7 @@ CampaignHandler.prototype.setNewAndRemoveOldCheckLabels = function (newLabelName
 
     if (labelIterator.totalNumEntities() > 0) {
       var campaignIterator = AdsApp.campaigns().withCondition('Name = "' + campaignName + '"').withCondition('LabelNames CONTAINS_ANY ["' + newLabelName + '"]').get();
-      
+
       if(campaignIterator.totalNumEntities() === 0) {
         campaign = AdsApp.campaigns().withCondition('Name = "' + campaignName + '"').get().next();
         campaign.applyLabel(newLabelName);
@@ -1352,27 +1352,27 @@ CampaignHandler.prototype.getShouldBeActiveCampaigns = function(){
 	} catch (e) { Logger.log("GetShouldBeActiveCampaignsException: " + e + ". stack: " + e.stack); }
 
 	if(shouldBeActiveCampaigns.length > 0) Logger.log(shouldBeActiveCampaigns.length + " inactive campaigns should be active, activating : " + shouldBeActiveCampaigns.sort());
-	
+
 	return shouldBeActiveCampaigns;
 };
 
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 0. CAMPAIGNSETTINGUPDATESERVICE @prototype
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 function CampaignSettingUpdateService() {
   if (typeof NEW_CAMPAIGN_CONFIG != "undefined") {
-    
+
     this.targetedLocations = typeof NEW_CAMPAIGN_CONFIG.newcampSettings["Targeted Locations ID"] != "undefined" ? NEW_CAMPAIGN_CONFIG.newcampSettings["Targeted Locations ID"] : "NONE";
     this.excludedLocations = typeof NEW_CAMPAIGN_CONFIG.newcampSettings["Excluded Locations ID"] != "undefined" ? NEW_CAMPAIGN_CONFIG.newcampSettings["Excluded Locations ID"] : "NONE";
-  
+
 		this.negativeLists = typeof NEW_CAMPAIGN_CONFIG.newcampSettings["Negative Lists"] != "undefined" ? NEW_CAMPAIGN_CONFIG.newcampSettings["Negative Lists"] : "NONE";
 
     this.mobilebidModifier = typeof NEW_CAMPAIGN_CONFIG.newcampSettings["Mobile Bid Modifier"] != "undefined" ? NEW_CAMPAIGN_CONFIG.newcampSettings["Mobile Bid Modifier"] : "NONE";
@@ -1416,7 +1416,7 @@ CampaignSettingUpdateService.prototype.updateCampaigns = function() {
 * @throws {exception} MissingBiddingStrategy_Exception
 */
 CampaignSettingUpdateService.prototype.updateCampaignSettings = function(campaign) {
-  
+
   this.addLocations_(campaign);
   this.excludeLocations_(campaign);
   this.addNegativeLists_(campaign);
@@ -1443,7 +1443,7 @@ CampaignSettingUpdateService.prototype.findCampaignsNotInScope = function(){
 	if(label_enabled == "") {
 		Logger.log("No specific AdGroup Status label given. Campaigns which previously have been deleted from feed, won't receive a scope label.");
 		return;
-	}	
+	}
 
 	var campaignSelector;
 	try{
@@ -1462,12 +1462,12 @@ CampaignSettingUpdateService.prototype.findCampaignsNotInScope = function(){
 	while(campaignSelector.hasNext()){
 		var campaign = campaignSelector.next();
 		try{
-			var adgroups = campaign.adGroups().withCondition("Status != REMOVED").withCondition("LabelNames CONTAINS_ANY ['"+label_enabled+"']").get();	
+			var adgroups = campaign.adGroups().withCondition("Status != REMOVED").withCondition("LabelNames CONTAINS_ANY ['"+label_enabled+"']").get();
 		} catch(e){
 			Logger.log("An error occured while selecting adgroups for scope check. Error: "+e+". Stack: "+e.stack);
 			return;
 		}
-		
+
 		if(adgroups.totalNumEntities() > 0){
 			campaign.applyLabel(this.scope_string);
 			if(DEBUG_MODE == 1){Logger.log("Added campaign "+campaign.getName()+" to scope "+this.scope_string);}
@@ -1556,7 +1556,7 @@ CampaignSettingUpdateService.prototype.addTabletBidModifier_ = function(campaign
  */
 CampaignSettingUpdateService.prototype.addBiddingStrategy_ = function(campaign) {
   if (this.biddingStrategy == "NONE" || this.biddingStrategy !== "") return;
-  
+
   try {
     var biddingStrategy = AdsApp.biddingStrategies().withCondition("Name = '" + this.biddingStrategy + "'").get().next();
     campaign.bidding().setStrategy(biddingStrategy);
@@ -1575,17 +1575,17 @@ CampaignSettingUpdateService.prototype.getLabel = function (labelName){
     if (labelSelector.totalNumEntities() === 0) AdsApp.createLabel(labelName);
   } catch (e) { Logger.log("LabelOperationException: " + e); Logger.log(" ");}
 };
- 
+
 
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 0. FEEDCOLUMNVALIDATOR @prototype
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 function FeedColumnValidator(feedContent,requiredColums,extraColumns){
@@ -1615,7 +1615,7 @@ FeedColumnValidator.prototype.getColumnMapper = function() {
       }
     }
   } catch(e){Logger.log("NoExtraColumnInfo: No additional, account-specfic columns were added to feed.");}
-  
+
   for(var k=0; k<headerColumn.length; k++){
     columnMapper[headerColumn[k].toLowerCase()] = k;
   }
@@ -1633,22 +1633,22 @@ FeedColumnValidator.prototype.getColumnMapper = function() {
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 1. FEEDHANDLER @prototype
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
- 
+
 function FeedHandler(feedurl, columnSeparator, columnMapper, campaignName, feedContent) {
   this.feedColSeparator = columnSeparator;
   this.feedContent = feedContent;
   this.columnMapper = columnMapper;
   this.campaignName = campaignName;
 }
- 
+
 
 /**
 * @return array adGroups, onedim array of objects
@@ -1659,7 +1659,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
   for(var i=1;i<this.feedContent.length;i++){
     var listItem = this.feedContent[i];
-    
+
     // Check AdGroup Names or extra space at beginning
     if(listItem[this.columnMapper["target ad group"]].charAt[0] === " ") {
       throw new Error("ExtraSpaceInAdGroup_Error: Your adgroup name '" + listItem[this.columnMapper["target ad group"]] + "' contains a space at the beginning. Please remove from feed, this will cause issues.");
@@ -1694,7 +1694,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       	} else {
       		adGroupObject[EXTRA_COLUMN_OBJECTVALUES[j]] = listItem[this.columnMapper[EXTRA_COLUMNS[j]]];
       	}
-        
+
       }
     }
 
@@ -1729,7 +1729,7 @@ FeedHandler.prototype.getSaleAdGroupList = function(adGroupObjects) {
   }
   return saleAdGroupList;
 };
- 
+
 
 /**
 * @param array adGroupObjects,
@@ -1744,7 +1744,7 @@ FeedHandler.prototype.getNonSaleAdGroupList = function(adGroupObjects) {
 };
 
 
-/* 
+/*
 * @description converts a string into an upperCaseFirstLetter version
 * @param string keywordString
 * @return string ucFirstIntraStringlowerCase
@@ -1754,36 +1754,36 @@ FeedHandler.prototype.upperCaseFirst = function(string) {
 
   var stringArray = string.split("_");
   var normalizedString = [];
-  
+
   for (var i=0; i< stringArray.length; i++) {
     var singleNormalizedString = stringArray[i].toLowerCase().replace(/\b[a-z]/g,function(f){return f.toUpperCase();});
     normalizedString.push(singleNormalizedString);
   }
   var ucFirstString  = normalizedString.join("_").replace(/Z_Feed_/g,"z_Feed_").replace(/_Bc_/g,"_BC_").replace(/_Bg_/g,"_BG_").replace(/_Bcg_/g,"_BCG_").replace(/_Cg_/g,"_CG_").replace(/_Bcpc_/g,"_BCPC_").replace(/_Bm_/g,"_BM_");
-  
-  // see fix 1.1.3 
+
+  // see fix 1.1.3
   var ucFirstIntraStringlowerCase = (function intraStringlowerCasing(ucFirstString) {
     function upperToHyphenLower(match) {
       return match.toLowerCase();
     }
     return string.replace(/'[A-ZÜÄÖ]/g, upperToHyphenLower);
   }) ();
-  
+
   return ucFirstIntraStringlowerCase;
 };
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 2.1 ADGROUPHANDLER @prototype
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
- 
+
 function AdGroupHandler(campaignName) {
   this.campaignName = campaignName;
   this.dateYmd = new Date().toISOString().substring(0, 10);
@@ -1798,12 +1798,12 @@ function AdGroupHandler(campaignName) {
 * @return void
 */
 AdGroupHandler.prototype.create = function(adGroupList, defaultBid, storageHandler) {
-  
+
   try{
     var campaign = AdsApp.campaigns().withCondition('Name = \"' + this.campaignName + '\"').get().next();
     var labelName = this.getStatusLabel("ENABLED");
     Logger.log(" "); Logger.log("Creating " + adGroupList.length + " ad groups, first item: " + adGroupList[0]);
-    
+
     for(var i=0;i<adGroupList.length;i++) {
       try{
         // Skip if already existing
@@ -1830,12 +1830,12 @@ AdGroupHandler.prototype.create = function(adGroupList, defaultBid, storageHandl
           if(DEBUG_MODE === 1){Logger.log("AdgroupCreationLogRow : " + JSON.stringify(adGroupCreationLogObject));}
         }
       } catch (e) {Logger.log("AdGroupOperationException: Specific error : " + e); Logger.log(" ");}
-    
+
     } // END FOR Loop
   } catch (e) {
     throw new Error("NoCampaignFoundError: No campaign found for " + this.campaignName + ". Please rerun the script after campaign bulk upload. Specific error : " + e + ". stack: " + e.stack);
   }
-  
+
   if (adGroupList.length > 0 && ADGROUP_CREATION_LOG.length > 0 && SCRIPT_RUN_SCOPE.productionMode_writeToDB == "YES") {
     storageHandler.writeRowstoStorage(ADGROUP_CREATION_LOG, "adGroups");
   }
@@ -1860,13 +1860,13 @@ AdGroupHandler.prototype.getAll = function() {
   var adGroupIterator = ignoreRemovedAdGroups === true ?
     AdsApp.adGroups().withCondition('CampaignName = "' + this.campaignName + '"').withCondition('CampaignStatus != REMOVED').withCondition('Status != REMOVED').get() :
     AdsApp.adGroups().withCondition('CampaignName = "' + this.campaignName + '"').withCondition('CampaignStatus != REMOVED').get();
-  
+
   while (adGroupIterator.hasNext()) {
     var adGroup = adGroupIterator.next();
     adGroupList.push(adGroup.getName());
   }
   if(DEBUG_MODE == 1) {Logger.log("Total number of adgroups : " + adGroupList.length); Logger.log("First example item: " + adGroupList[0]);}
-  
+
   return adGroupList;
 };
 
@@ -1879,13 +1879,13 @@ AdGroupHandler.prototype.getByStatus = function(status) {
   var adGroupList = [];
   var adGroupIterator = // ad groups with no handler label (manually paused) are skipped!
       AdsApp.adGroups().withCondition('CampaignName = "' + this.campaignName + '"').withCondition('CampaignStatus != REMOVED').withCondition("Status = " + status).withCondition("LabelNames CONTAINS_ANY ['" + this.getStatusLabel(status) + "']").get();
-  
+
   while (adGroupIterator.hasNext()) {
     var adGroup = adGroupIterator.next();
     adGroupList.push(adGroup.getName());
   }
   if(DEBUG_MODE == 1) {Logger.log("Currently with Status " + status + ": " + adGroupList.length); if(adGroupList.length > 0) { Logger.log("First item: " + adGroupList[0]);}}
-  
+
   return adGroupList;
 };
 
@@ -1898,7 +1898,7 @@ AdGroupHandler.prototype.getByStatus = function(status) {
 * @todo add updateLabel method and check for errors
 */
 AdGroupHandler.prototype.setStatus = function(adGroupList, status) {
-  
+
 var labelName = this.getStatusLabel(status);
 Logger.log("Setting status " + status + " to " + adGroupList.length + " adGroups; "); if(adGroupList.length > 0) { Logger.log("First item: " + adGroupList[0]);}
 
@@ -1907,14 +1907,14 @@ for(var i=0; i < adGroupList.length; i++) {
     Logger.log("setStatus: No adgroup statuses to be updated.");
     break;
   }
-  
+
   try{
     var adGroupIterator = AdsApp.adGroups()
     .withCondition('Name = \"' + adGroupList[i].replace('"','\"') + '\"')
     .withCondition('CampaignName = "' + this.campaignName + '"')
     .withCondition('CampaignStatus != REMOVED')
     .get();
-    
+
       while (adGroupIterator.hasNext()) {
         var adGroup = adGroupIterator.next();
         status === "ENABLED" ? adGroup.enable() : adGroup.pause();
@@ -1925,14 +1925,14 @@ for(var i=0; i < adGroupList.length; i++) {
         var pausedLabel = typeof ADGROUP_STATUS_LABELS != "undefined" ? ADGROUP_STATUS_LABELS["PAUSED"] : "Paused_by_nrFeedCamps";
 
         adGroup.removeLabel(labelName === activeLabel ? pausedLabel : activeLabel);
-      } // END TRY STATEMENT 
+      } // END TRY STATEMENT
     } catch(e) {
       var errorRow = [TIME_STAMP, "AdGroup" , "Failed", "Status change to " + status, this.campaignName, adGroupList[i] , "", "", "", "", "", "", "", "", "", "", "","","","","","","" ];
       ERROR_LOG.push(errorRow);
       ERROR_SUMMARY_OBJECT.adGroupErrorCount++;
       Logger.log("AdGroup Status Change Exception: The operation for adGroup " + adGroupList[i] + " showed an error. Continuing..."); Logger.log("Specific error : " + e);
     }
-      
+
    } // END FOR LOOP
 };
 
@@ -1952,7 +1952,7 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
 
   var activeLabel = typeof ADGROUP_STATUS_LABELS != "undefined" ? ADGROUP_STATUS_LABELS["ENABLED"] : "Activated_by_nrFeedCamps";
   var pausedLabel = typeof ADGROUP_STATUS_LABELS != "undefined" ? ADGROUP_STATUS_LABELS["PAUSED"] : "Paused_by_nrFeedCamps";
-  
+
   // Case "keywords"
   if(entityCase === "keywords"){
     adGroupIterator = AdsApp.adGroups().withCondition('CampaignName = "' + this.campaignName + '"')
@@ -1964,7 +1964,7 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
     .forDateRange("LAST_MONTH")
     .get();
   }
-  
+
 
   // Case Negatives & Ads
   else {
@@ -1979,17 +1979,17 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
 
   while (adGroupIterator.hasNext()) {
     var adGroup = adGroupIterator.next();
-    
+
     if(entityCase === "keywords"){
       var keywordIterator = adGroup.keywords().get();
       if(keywordIterator.totalNumEntities() === 0) adGroupList.push(adGroup.getName());
     }
-    
+
     if(entityCase === "negatives"){
       var negativeKeywordIterator = adGroup.negativeKeywords().get();
       if(negativeKeywordIterator.totalNumEntities() === 0) adGroupList.push(adGroup.getName());
     }
-    
+
     var adIterator;
     var paramStdLabel = this.getLabel('paramStdTemplate');
     var paramSaleLabel = this.getLabel('paramSaleTemplate');
@@ -2002,15 +2002,15 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
 
     var staticStdLabel = this.getLabel('staticStdTemplate');
     var staticSaleLabel = this.getLabel('staticSaleTemplate');
-    
+
     if(entityCase === "staticAds"){
       adIterator = adGroup.ads().withCondition("LabelNames CONTAINS_ANY ['" + staticStdLabel + "' , '" + staticSaleLabel + "']").withCondition('Status != DISABLED').get();
       if(adIterator.totalNumEntities() === 0) adGroupList.push(adGroup.getName());
     }
-    
+
   }
   Logger.log("adGroupList length for entityCase missing " + entityCase + " : " + adGroupList.length);
-  
+
   // Enable entity refill to randomly start from the end
   adGroupList = adGroupList.sort();
   if(Math.random() >= 0.5) adGroupList = adGroupList.reverse();
@@ -2026,7 +2026,7 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
 AdGroupHandler.prototype.getStatusLabel = function(status) {
 
   var labelName = status == "ENABLED" ? "Activated_by_nrFeedCamps": "Paused_by_nrFeedCamps";
-  
+
   if(typeof(ADGROUP_STATUS_LABELS) !== "undefined") {
     if(ADGROUP_STATUS_LABELS) labelName = ADGROUP_STATUS_LABELS[status];
   }
@@ -2074,7 +2074,7 @@ AdGroupHandler.prototype.getLabelsByString = function(stringIdentifier){
 * @return {void}
 */
 AdGroupHandler.prototype.pauseAdGroups_withNonServingKeywords = function() {
-  
+
   if(typeof PAUSE_NONSERVING_ELEMENTS == "undefined") return;
   if(PAUSE_NONSERVING_ELEMENTS === false) return;
 
@@ -2086,19 +2086,19 @@ AdGroupHandler.prototype.pauseAdGroups_withNonServingKeywords = function() {
     .withCondition("CampaignName CONTAINS_IGNORE_CASE '" + this.campaignName + "'")
     .withCondition("CampaignStatus = ENABLED")
     .get();
-  
+
   while (adGroupIterator.hasNext()) {
     var adGroup = adGroupIterator.next();
     var keywordIterator_noVol = adGroup.keywords().forDateRange("LAST_30_DAYS").withCondition("FirstPageCpc > 0").withCondition("Status = ENABLED").withCondition("Impressions = 0").get();
     var keywordIterator_withVol = adGroup.keywords().forDateRange("LAST_30_DAYS").withCondition("Impressions > 0").withCondition("Status = ENABLED").get();
     var keywordIterator_hasActiveKws = adGroup.keywords().withCondition("Status = ENABLED").get();
-    
+
     if(keywordIterator_noVol.totalNumEntities() === 0 && keywordIterator_withVol.totalNumEntities() === 0 && keywordIterator_hasActiveKws.totalNumEntities() > 0) {
       adGroup.pause();
 
       var activeLabel = typeof ADGROUP_STATUS_LABELS != "undefined" ? ADGROUP_STATUS_LABELS["ENABLED"] : "Activated_by_nrFeedCamps";
       var pausedLabel = typeof ADGROUP_STATUS_LABELS != "undefined" ? ADGROUP_STATUS_LABELS["PAUSED"] : "Paused_by_nrFeedCamps";
-      
+
       adGroup.removeLabel(activeLabel);
       adGroup.applyLabel(lowVolLabel);
     }
@@ -2130,19 +2130,19 @@ AdGroupHandler.prototype.setScopeLabel = function(currentAllAdGroups){
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 2.2 ADGROUPLIST @prototype
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
 
 
 /*
-* @param {array} list, a list of adgroup names 
+* @param {array} list, a list of adgroup names
 */
 
 function AdGroupList(list) {
@@ -2150,7 +2150,7 @@ function AdGroupList(list) {
   this.getList = function() {
     return this.listContent;
   };
- 
+
   /**
   * @param object referenceList
   * @return array diffList
@@ -2165,7 +2165,7 @@ function AdGroupList(list) {
     if(DEBUG_MODE == 1) {Logger.log("returnIfFoundIn diffList: Length = " + diffList.length + ";"); if(diffList.length > 0) { Logger.log("First item: " + diffList[0]);}}
     return diffList;
   };
-   
+
   /**
   * @param object referenceObject
   * @return array diffList
@@ -2181,7 +2181,7 @@ function AdGroupList(list) {
     if(DEBUG_MODE == 1) {Logger.log("returnIfNotFoundIn diffList: Length = " + diffList.length + ";"); if(diffList.length > 0) {Logger.log("First item: " + diffList[0]);}}
     return diffList;
   };
-   
+
   /**
   * @param array fullObjectList
   * @return array filteredObjectList, object list based on listContent as reference list
@@ -2189,7 +2189,7 @@ function AdGroupList(list) {
   */
   this.getObjectsFrom = function(fullObjectList) {
     var filteredObjectList = [];
- 
+
     if(DEBUG_MODE === 1) Logger.log("getObjectsFrom method: fullObjectList.length: " + fullObjectList.length);
     if(DEBUG_MODE === 1) Logger.log("this.listContent : " + this.listContent);
 
@@ -2200,23 +2200,23 @@ function AdGroupList(list) {
       else continue;
     }
     if(DEBUG_MODE === 1) {Logger.log("getObjectsByAdGroupFrom filteredObjectList: Length = " + filteredObjectList.length + ";"); if(filteredObjectList.length > 0) {Logger.log("First item: " + JSON.stringify(filteredObjectList[0])); Logger.log(" ");}}
-    
+
     return filteredObjectList;
   };
 }
- 
+
 
 
 
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 3.1 ADTEMPLATEPARSER @prototype
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -2235,7 +2235,7 @@ AdTemplateParser2.prototype.validateSheetsAndAggregationTypes = function(fullObj
   var missingAdTemplates = [];
   var aggregationTypesInFeed = [];
   var sheetNames = [];
-   
+
   // Generate sheet name list
   for(var i=0; i<this.allSheets.length; i++) {
     sheetNames.push(this.allSheets[i].getName());
@@ -2251,23 +2251,23 @@ AdTemplateParser2.prototype.validateSheetsAndAggregationTypes = function(fullObj
     if(aggregationTypesInFeed.indexOf(aggrType) === -1) aggregationTypesInFeed.push(aggrType);
   }
   Logger.log("aggregationTypesInFeed : " + aggregationTypesInFeed + ". Missing any? Check your exact campaign names! They must match the configured campaign prefix.");
-   
+
   // Check if all aggr types have an ad sheet
   for(i=0; i<aggregationTypesInFeed.length; i++){
     if(sheetNames.indexOf(aggregationTypesInFeed[i]) == -1) {
       missingAdTemplates.push(aggregationTypesInFeed[i]);
     }
   }
-   
+
   if(missingAdTemplates.length > 0 && INPUT_SOURCE_MODE === "ADBUILD") {
     throw new Error("TabTemplateAndAggregationTypeMismatch: Not all aggregation types have a corresponding ad template. Missing ad templates: " + missingAdTemplates);
   }
 };
- 
+
 
 /*
 * @return {object} templateObject
-* @throws {exception} 
+* @throws {exception}
 
 */
 AdTemplateParser2.prototype.getAllTemplates = function(){
@@ -2275,14 +2275,14 @@ AdTemplateParser2.prototype.getAllTemplates = function(){
   var templateObject = {};
 
   for(var i=0; i<this.allSheets.length; i++){
-    
+
     try{
-      // Find appropriate width 
+      // Find appropriate width
       var lastColumn = this.getLastNonEmptyColumn(this.allSheets[i]);
       var sheetData = this.allSheets[i].getRange(1,1,6,lastColumn+1).getValues();
       var sheetName = this.allSheets[i].getName().toString();
       var columnHeaders = sheetData[0];
-       
+
       if(sheetName === "(errors)" || sheetName === "(urls)") {continue;}
 
       templateObject[sheetName] = {};
@@ -2294,7 +2294,7 @@ AdTemplateParser2.prototype.getAllTemplates = function(){
         // Skip sale template if needed
         if(this.setAdsConfig.standard === 0 && this.setAdsConfig.sale === 1 && columnHeaders[j] !== "SALE") continue;
         if(this.setAdsConfig.standard === 1 && this.setAdsConfig.sale === 0 && columnHeaders[j] === "SALE") continue;
-        
+
         var templateInfo = this.getTemplateNameAndType(columnHeaders[j]);
 
         // Skip sale ads if needed
@@ -2329,7 +2329,7 @@ AdTemplateParser2.prototype.getAllTemplates = function(){
   } // End for-Loop Sheets
 
   if(DEBUG_MODE === 1) {Logger.log("templateObject : "  + JSON.stringify(templateObject)); Logger.log(" ");}
-  
+
   return templateObject;
 };
 
@@ -2340,13 +2340,13 @@ AdTemplateParser2.prototype.getAllTemplates = function(){
 */
 AdTemplateParser2.prototype.getRowMapper = function(firstColumn) {
   var rowMapper = {};
-  
+
   for(var k=1; k<firstColumn.length; k++){
     rowMapper[firstColumn[k][0].toLowerCase()] = k;
   }
-  
+
   if(typeof rowMapper.description1 == "undefined" && typeof rowMapper.description !== "undefined") rowMapper.description1 = rowMapper.description;
- 
+
   return rowMapper;
 }
 
@@ -2363,7 +2363,7 @@ AdTemplateParser2.prototype.getLastNonEmptyColumn = function(sheet){
   var lastColIndex;
   if(lastColSecond === lastColThird) lastColIndex = lastColSecond;
   if(lastColIndex === undefined) throw new Error("LastNonEmptyColumn_MismatchError: Not all values seem to filled for the last column, see rows 2 and 3.");
-  
+
   return lastColIndex;
 };
 
@@ -2375,7 +2375,7 @@ AdTemplateParser2.prototype.getLastNonEmptyColumn = function(sheet){
 AdTemplateParser2.prototype.getLastColumnIndexByRow = function(spreadsheet, rowNum){
   var column = spreadsheet.getRange(rowNum,1,1,20);
   var values = column.getValues()[0]; // get all data in one call
-  
+
   var ct = 0;
   for(var i=values.length-1;i>0;i--){
     if(ct !== 0) break;
@@ -2404,14 +2404,14 @@ AdTemplateParser2.prototype.getTemplateNameAndType = function(columnName){
 
 
 
- 
+
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 3.2 ADHANDLER @prototype
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
@@ -2430,26 +2430,26 @@ function AdHandler(campaignName, adGroupObjects, adTemplateObj) {
 * @throws exception AdCreation Exception
 */
 AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
-  
+
   Logger.log("Creating 2 ads for adType withParam = " + withParam + " for " + this.adGroupObjects.length + " adGroups.");
   if(DEBUG_MODE == 1) {Logger.log("adTemplateObj : "); Logger.log(this.adTemplateObj); Logger.log(" ");}
-  
+
   // Instantiate fallback option via bulk upload for policy errors
   var columns = ["Campaign","Ad Group","Labels","Headline 1", "Headline 2", "Headline 3","Description Line 1", "Description Line 2", "Path 1", "Path 2", "Final URL"];
   this.upload = AdsApp.bulkUploads().newCsvUpload(columns);
   this.adUploadRows = 0;
 
   for(var i = 0; i < this.adGroupObjects.length; i++) {
-    
+
     var adGroupNameSplit = this.adGroupObjects[i].kwWithUnderscore.split("_");
     if(INPUT_SOURCE_MODE === "SQA") adGroupNameSplit = this.adGroupObjects[i].kwWithUnderscore.replace(/ /g, "_"). split("_");
 
     var adGroup;
-    
+
     try {
       adGroup = AdsApp.adGroups().withCondition('CampaignName = "' + this.campaignName + '"').withCondition('CampaignStatus != REMOVED').withCondition('Name = \"' + this.adGroupObjects[i].adGroup.replace('"','\"') + '\"').get().next();
     } catch(e) { Logger.log("Missing Entity Exception: Requested AdGroup " + this.adGroupObjects[i].adGroup + " was not found. No worries if only in preview mode, ad group needs to exist.");}
-    
+
     if(DEBUG_MODE == 1) {Logger.log("adGroupObject : " + JSON.stringify(this.adGroupObjects[i]));}
 
     var aggrType = this.adGroupObjects[i].aggregationType;
@@ -2465,9 +2465,9 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
 
       // LOOP through all templates
       for(var j=0; j<adTemplates.length; j++) {
-        
+
         var adTemplate = adTemplates[j];
-        
+
         // Execute main ad creation logic
         var label = this.getLabel(adTemplate.type);
         var headlineCutOffLabel = this.getLabel("headline1_+30Chars_cutOff");
@@ -2486,7 +2486,7 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
 
         // Cut off long headlines by word, not by character
         headline = this.cutOffByWordOrChar(headline, this.adGroupObjects[i]);
-   
+
         var pathArray = this.pathBuilder(adGroupNameSplit);
         var finalUrl = urlHandler.createUrlByConfig(this.adGroupObjects[i]);
 
@@ -2500,7 +2500,7 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
 					.withPath2(pathArray[1])
 					.withFinalUrl(finalUrl)
 					.build();
-        
+
         if(DEBUG_MODE == 1) Logger.log("full URL : " + finalUrl);
         var adGroupResult = adOperation.isSuccessful() ? adOperation.getResult().applyLabel(label) : adOperation.getErrors();
 
@@ -2517,11 +2517,11 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
 					"Path 2" : pathArray[1],
 					"Final URL" : finalUrl
 				};
-        
+
         // Mark sliced headlines with extra label
         if(headline.length > 30 && adOperation.isSuccessful()) adOperation.getResult().applyLabel(headlineCutOffLabel);
 
-        
+
         ////////////////////
         // AD ERROR HANDLING
         ////////////////////
@@ -2530,7 +2530,7 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
           var errorRow = [TIME_STAMP, "Ad" , "Disapproved", adOperation.getErrors(), this.campaignName, this.adGroupObjects[i].adGroup , label, "", "", "", finalUrl, "", this.adGroupObjects[i].headline, adTemplate.h2, adTemplate.desc, pathArray[0], pathArray[1],"","","","", adTemplate.h3, adTemplate.desc2];
           ERROR_LOG.push(errorRow);
           ERROR_SUMMARY_OBJECT.adErrorCount++;
-          
+
           // Cases: POLICY_ERROR, LINE_TOO_WIDE, KEYWORD_HAS_INVALID_CHARS, INVALID_FEED_NAME, MISSING_PROTOCOL_IN_FINAL_URL, MALFORMED_FINAL_URL, INVALID_TLD_IN_FINAL_URL
           var labelIterator;
 
@@ -2563,7 +2563,7 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
                 path0 = pathArray[0].replace(regexString, brand.replace("I","l"));
               }
 
-              // Headline1 Case 3: Split single letters with extra space 
+              // Headline1 Case 3: Split single letters with extra space
               if(brand.indexOf("I") == -1 && brand.indexOf("l") == -1 && brand.length<7) {
                 var brandExploded = brand.split("").join(" ");
                 headline = headline.replace(regexString, brandExploded).replace("©","");
@@ -2598,7 +2598,7 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
 									"Final URL" : finalUrl
 								};
               }
-						} // END IF Policy error Letter L/I Swap retry 
+						} // END IF Policy error Letter L/I Swap retry
 
 						this.appendUploadRow(uploadRow);
 
@@ -2613,11 +2613,11 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
           labelIterator = adGroup.labels().withCondition('Name = "' + errorLabel + '"').get();
           if(errorLabel.length > 1 && labelIterator.totalNumEntities() === 0) adGroup.applyLabel(errorLabel);
           if(DEBUG_MODE === 1) Logger.log("Error label " + errorLabel + " applied to adgroup " + adGroup.getName());
-        
+
         } // END IF errors
         if(DEBUG_MODE == 1) {Logger.log("Ad created for " + aggrType + " WithParam=" + withParam + " for: "+ this.adGroupObjects[i].adGroup + " with label : " + label);}
-        
-      } // END FOR IN Loop  
+
+      } // END FOR IN Loop
     }
     catch(e){
       ERROR_SUMMARY_OBJECT.adErrorCount++;
@@ -2654,12 +2654,12 @@ AdHandler.prototype.cutOffByWordOrChar = function(oldHeadline, adGroupObject) {
   if(oldHeadline.length > 40 && containsKwInsertion === true) {
     headline = headline.replace("}","");
     headline = oldHeadline.split(" ").slice(0,oldHeadline.split(" ").length-1).join(" ");
-    
+
     // If still too long cut off 2-4 words
     if(headline.length > 39) headline = oldHeadline.split(" ").slice(0,oldHeadline.split(" ").length-2).join(" ");
     if(headline.length > 39) headline = oldHeadline.split(" ").slice(0,oldHeadline.split(" ").length-3).join(" ");
     if(headline.length > 39) headline = oldHeadline.split(" ").slice(0,oldHeadline.split(" ").length-4).join(" ");
-    
+
     headline = headline + "}";
     headline = headline.replace(" }","}").replace(" &}","}");
   }
@@ -2686,7 +2686,7 @@ AdHandler.prototype.getLabel = function(name) {
 * @return {void}
 */
 AdHandler.prototype.appendUploadRow = function(uploadRow) {
-			
+
 	if (typeof AD_HEADLINE_3 !== "undefined") uploadRow["Headline 3"] = AD_HEADLINE_3;
 	if (typeof AD_DESCRIPTION_LINE_2 !== "undefined") uploadRow["Description Line 2"] = AD_DESCRIPTION_LINE_2;
 
@@ -2773,25 +2773,25 @@ AdHandler.prototype.pathBuilder = function(adGroupNameSplit) {
   var getPath2 = function() {
     // Case 0. no second element
     if (adGroupNameSplit.length === 1) { return "";
-    
-    // Case 1. if second element shorter than 16, use second 
+
+    // Case 1. if second element shorter than 16, use second
     } else if (adGroupNameSplit.length === 2 && adGroupNameSplit[1].length < 16) {
       return adGroupNameSplit[1].replace(" & ","-").replace(/ /g,"-");
 
     // Case 2: if third element is shorter than 16, use third
     } else if(adGroupNameSplit.length === 3 && adGroupNameSplit[2].length < 16) {
       return adGroupNameSplit[2].replace(" & ","-").replace(/ /g,"-");
-      
+
     // Case 3. if third element longer than 15 and second element short enough, use second
     } else if (adGroupNameSplit.length > 2 && adGroupNameSplit[2].length > 15 && adGroupNameSplit[1].length < 16) {
      return adGroupNameSplit[1].replace(" & ","-").replace(/ /g,"-");
-      
+
     } else {return ""; }
   };
   pathArray.push(getPath2());
   return pathArray;
 };
-  
+
 
 
 /*
@@ -2807,7 +2807,7 @@ AdHandler.prototype.getAdErrorCount = function() {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 4. KEYWORDHANDLER @prototype
-// 
+//
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2818,7 +2818,7 @@ function KeywordHandler(campaignName, adGroupObjects) {
   this.campaignName = campaignName;
   this.keywordErrorCount = 0;
 }
-  
+
 /** adds three types of keywords: exact, exact reverse und phrase or modified
 * @param array bidRange
 * @return void
@@ -2847,18 +2847,18 @@ KeywordHandler.prototype.addKwsWithRelativeBids = function(newKeywordConfig, url
       // Allowing for matchtype split campaigns
       if(NEW_CAMPAIGN_CONFIG.allowedMatchTypes === "exact" || NEW_CAMPAIGN_CONFIG.allowedMatchTypes === "all" || NEW_CAMPAIGN_CONFIG.allowedMatchTypes === "-") {
         var exactKw = '[' + this.adGroupObjects[i].kwWithUnderscore.replace(/\_/g,' ').replace(/\//g,' ') + ']';
-        
+
         // Check if keyword URL is needed
         exactKeywordOp = newKeywordConfig.SET_KEYWORD_URLS == "YES" ?
           keywordBuilder.withText(exactKw).withCpc(targetBid).withFinalUrl(finalUrl).build() :
         keywordBuilder.withText(exactKw).withCpc(targetBid).build();
-        
+
         var exactKeywordResult = exactKeywordOp.isSuccessful() ? exactKeywordOp.isSuccessful() : exactKeywordOp.getErrors();
-        
+
         // var reverseExactKw = '[' + this.adGroupObjects[i].kwWithUnderscore.split("_").reverse().join(" ") + ']';
         /* reverseExactKeywordOp = newKeywordConfig.SET_KEYWORD_URLS == "YES" ?
           keywordBuilder.withText(reverseExactKw).withCpc(targetBid).withFinalUrl(finalUrl).build() :
-        keywordBuilder.withText(reverseExactKw).withCpc(targetBid).build();	
+        keywordBuilder.withText(reverseExactKw).withCpc(targetBid).build();
         var exactKeywordReverseResult = reverseExactKeywordOp.isSuccessful() ? reverseExactKeywordOp.isSuccessful() : reverseExactKeywordOp.getErrors(); */
 
         // Checking for and labeling duplicate keywords
@@ -2877,14 +2877,14 @@ KeywordHandler.prototype.addKwsWithRelativeBids = function(newKeywordConfig, url
         var phraseKw = '\"' + this.adGroupObjects[i].kwWithUnderscore.replace(/\_/g,' ') + '\"';
         var modBroadKw = '+' + this.adGroupObjects[i].kwWithUnderscore.replace(/\_/g,' ').replace(/\s/g,' +');
         var nonExactKw = newKeywordConfig.NonExact_Phrase_or_MobBroad == "MB" ? modBroadKw : phraseKw;
-        
+
         nonExactBid = Math.round(targetBid * newKeywordConfig.NonExact_BidMultiplier * 100) / 100;
-        
+
         // Check if keyword URL is needed
         nonExactKeywordOp = newKeywordConfig.SET_KEYWORD_URLS == "YES" ?
           keywordBuilder.withText(nonExactKw).withCpc(nonExactBid).withFinalUrl(finalUrl).build() :
           keywordBuilder.withText(nonExactKw).withCpc(nonExactBid).build();
-        
+
         var nonExactKeywordResult = nonExactKeywordOp.isSuccessful() ? nonExactKeywordOp.isSuccessful() : nonExactKeywordOp.getErrors();
 
         // Checking for and labeling duplicate keywords
@@ -2919,8 +2919,8 @@ KeywordHandler.prototype.addKwsWithRelativeBids = function(newKeywordConfig, url
 
     // SQA Extra AdGroup Label for match accuracy
     if(INPUT_SOURCE_MODE === "SQA"){
-    	this._sqaSetMatchAccuracyLabel(adGroup, this.adGroupObjects[i]);	
-    } 
+    	this._sqaSetMatchAccuracyLabel(adGroup, this.adGroupObjects[i]);
+    }
   } // END FOR Loop adgroups
 };
 
@@ -2934,7 +2934,7 @@ KeywordHandler.prototype.addKwsWithRelativeBids = function(newKeywordConfig, url
 KeywordHandler.prototype.calculateRelativeBid = function(bidRange, minProductPrice, conservativeFactor){
   var prelimBid = Math.round(Math.log(minProductPrice)/conservativeFactor * 100) / 100;
   var constrainedBid;
-  
+
   if(prelimBid < bidRange[0]) {
     constrainedBid = bidRange[0];
   } else if(prelimBid > bidRange[1]) {
@@ -2949,21 +2949,21 @@ KeywordHandler.prototype.calculateRelativeBid = function(bidRange, minProductPri
 * @return {bool} duplicatesFound
 */
 KeywordHandler.prototype.markDuplicateKeywords = function(keyword, adGroupName) {
-  
+
   var sameMt_Legacy_Label = this.getLabel(DUPLICATE_KW_LABELS.sameMatchtype_legacy);
   var duplicatesFound = 0;
-  
+
   try {
     var kwIterator = AdsApp.keywords().withCondition('Text STARTS_WITH_IGNORE_CASE \"' + keyword + '\"')
       .withCondition('AdGroupName != \"' + adGroupName + '\"')
       .withCondition("AdGroupStatus != REMOVED").withCondition("Status != REMOVED").withCondition("CampaignStatus != REMOVED")
       .get();
-    
+
     if(kwIterator.totalNumEntities() > 0) {
       while (kwIterator.hasNext()) {
         var duplKeyword = kwIterator.next();
         var duplKeywordText = duplKeyword.getText().toLowerCase();
-        
+
         if(duplKeywordText === keyword.toLowerCase()) {
           Logger.log("sameMt Duplicate found and labeled for keyword '" + keyword + "'");
           duplKeyword.applyLabel(sameMt_Legacy_Label);
@@ -2972,7 +2972,7 @@ KeywordHandler.prototype.markDuplicateKeywords = function(keyword, adGroupName) 
       } // END while keyword
     }
   } catch (e) {Logger.log(e + " . " + e.stack);}
-  
+
   return duplicatesFound;
 };
 
@@ -3020,7 +3020,7 @@ KeywordHandler.prototype._sqaSetMatchAccuracyLabel = function(adGroup, adGroupOb
 		adGroup.applyLabel(entityMatchLabel);
 	}
 }
-		
+
 
 
 KeywordHandler.prototype.pauseNonServingKeywords = function() {
@@ -3030,14 +3030,14 @@ KeywordHandler.prototype.pauseNonServingKeywords = function() {
 
   var lowVolLabel = this.getLabel("Paused_by_nrFeedCamps_KW_LowVolume");
   var lowVolLabel_AG = this.getLabel("Paused_by_nrFeedCamps_AG_LowVolume");
-  
+
   var adGroupIterator = AdsApp.adGroups()
     .withCondition("Status = ENABLED")
     .withCondition("LabelNames CONTAINS_NONE ['" + lowVolLabel_AG + "'] ")
     .withCondition('CampaignName CONTAINS_IGNORE_CASE "'  + this.campaignName + '"')
     .withCondition("CampaignStatus = ENABLED")
     .get();
-  
+
   while (adGroupIterator.hasNext()) {
     var adGroup = adGroupIterator.next();
     var keywordIterator_zeroVol = adGroup.keywords()
@@ -3047,7 +3047,7 @@ KeywordHandler.prototype.pauseNonServingKeywords = function() {
       .get();
 
     var keywordIterator_hasActiveKws = adGroup.keywords().withCondition("Status = ENABLED").get();
-    
+
     if(keywordIterator_hasActiveKws.totalNumEntities() > 0) {
       while (keywordIterator_zeroVol.hasNext()) {
         var keyword = keywordIterator_zeroVol.next();
@@ -3076,7 +3076,7 @@ KeywordHandler.prototype.pauseNonPerformingKeywords_lowCtr = function() {
     .withCondition("CampaignName CONTAINS_IGNORE_CASE '"  + this.campaignName + "'")
     .withCondition('CampaignStatus != REMOVED')
     .get();
-  
+
   while (adGroupIterator.hasNext()) {
     var adGroup = adGroupIterator.next();
     var keywordIterator_nonPerf = adGroup.keywords()
@@ -3086,7 +3086,7 @@ KeywordHandler.prototype.pauseNonPerformingKeywords_lowCtr = function() {
       .withCondition("Conversions = 0")
       .forDateRange("LAST_30_DAYS")
       .get();
-    
+
     if(keywordIterator_nonPerf.totalNumEntities() > 0) {
       while (keywordIterator_nonPerf.hasNext()) {
         var keyword = keywordIterator_nonPerf.next();
@@ -3108,7 +3108,7 @@ KeywordHandler.prototype.pauseNonPerformingKeywords_highCost = function() {
   var maxCostValue = typeof NEW_KEYWORD_CONFIG.AutoPause_MaxCost === "undefined" ? 100 : NEW_KEYWORD_CONFIG.AutoPause_MaxCost;
   Logger.log("Starting to pause non-performing Keywords with highCost: maxCostValue > " + maxCostValue);
 
-  var dateRange = typeof NEW_KEYWORD_CONFIG.AutoPause_LookBack_DateRange !== "undefined" ? NEW_KEYWORD_CONFIG.AutoPause_LookBack_DateRange : "LAST_30_DAYS"; 
+  var dateRange = typeof NEW_KEYWORD_CONFIG.AutoPause_LookBack_DateRange !== "undefined" ? NEW_KEYWORD_CONFIG.AutoPause_LookBack_DateRange : "LAST_30_DAYS";
 
   try {
   	var adGroupIterator = AdsApp.adGroups()
@@ -3119,7 +3119,7 @@ KeywordHandler.prototype.pauseNonPerformingKeywords_highCost = function() {
     .withCondition('CampaignName CONTAINS_IGNORE_CASE "'  + this.campaignName + '"')
     .withCondition('CampaignStatus != REMOVED')
     .get();
-  
+
 	  while (adGroupIterator.hasNext()) {
 	    var adGroup = adGroupIterator.next();
 	    var keywordIterator_nonPerf = adGroup.keywords()
@@ -3128,7 +3128,7 @@ KeywordHandler.prototype.pauseNonPerformingKeywords_highCost = function() {
 	      .withCondition("Conversions = 0")
 	      .forDateRange(dateRange)
 	      .get();
-	    
+
 	    if(keywordIterator_nonPerf.totalNumEntities() > 0) {
 	      while (keywordIterator_nonPerf.hasNext()) {
 	        var keyword = keywordIterator_nonPerf.next();
@@ -3137,7 +3137,7 @@ KeywordHandler.prototype.pauseNonPerformingKeywords_highCost = function() {
 	      }
 	    }
 	  } // END WHILE Loop AdGroup
-  } catch(e){Logger.log("PauseNonPerformingKeywords_HighCost_Exception: " + e + ". stack : " + e.stack);}  
+  } catch(e){Logger.log("PauseNonPerformingKeywords_HighCost_Exception: " + e + ". stack : " + e.stack);}
 };
 
 
@@ -3149,10 +3149,10 @@ KeywordHandler.prototype.addCloseSuggestVariants = function() {
 
   if(typeof NEW_KEYWORD_CONFIG.addCloseVariants === "undefined") return;
   if(NEW_KEYWORD_CONFIG.addCloseVariants === false) return;
-  
+
   var suggestLabel = this.getLabel("Extended_by_nrFeedCamps_KW-Suggest");
   Logger.log("Starting to add close exact keywords variants via Google Suggest");
-  
+
   var adGroupIterator = AdsApp.adGroups()
     .withCondition("Status = ENABLED")
     .withCondition("LabelNames CONTAINS_NONE ['" + suggestLabel + "'] ")
@@ -3166,7 +3166,7 @@ KeywordHandler.prototype.addCloseSuggestVariants = function() {
       .withCondition("Status = ENABLED")
       .withCondition("KeywordMatchType = EXACT")
       .get();
-    
+
     if(keywordIterator.totalNumEntities() > 0) {
       while (keywordIterator.hasNext()) {
         var keyword = keywordIterator.next();
@@ -3178,10 +3178,10 @@ KeywordHandler.prototype.addCloseSuggestVariants = function() {
         if(typeof response[1][0] != "undefined") {
           for(var j=0;j<3;j++) {
             if(j === 0 || response[4]["google:suggestrelevance"][j-1] - response[4]["google:suggestrelevance"][j] < 10) {
-              
+
               var levenshteinDist = this.calculateLetterChanges(response[0].toLowerCase(), response[1][j]);
               var simMetric = (1-levenshteinDist/response[1][j].length).toFixed(2);
-              
+
               // If new keyword similar enough
               if(simMetric > 0.84 && levenshteinDist < 2) {
                 var suggestKeyword = "[" + response[1][j] + "]";
@@ -3198,8 +3198,8 @@ KeywordHandler.prototype.addCloseSuggestVariants = function() {
               }
             }
           } // END FOR loop responses
-        } // END IF response undefined 
-      } // END WHILE Loop Keyword 
+        } // END IF response undefined
+      } // END WHILE Loop Keyword
     }
   } // END WHILE Loop AdGroup
 };
@@ -3235,10 +3235,10 @@ KeywordHandler.prototype.calculateLetterChanges = function(a, b){
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 4.1 NegativeKeywordHandler: adds negative keywords on adGroup level by aggregation type
-// 
+//
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -3250,7 +3250,7 @@ KeywordHandler.prototype.calculateLetterChanges = function(a, b){
  */
 function NegativeKeywordHandler(campaignName, adGroupObjects) {
   this.campaign = campaignName;
-  
+
   if(typeof adGroupObjects != "undefined") this.adGroupObjects = adGroupObjects;
 
   else{ throw "Exception: AdGroupObjects must be an array."; }
@@ -3270,14 +3270,14 @@ function NegativeKeywordHandler(campaignName, adGroupObjects) {
 NegativeKeywordHandler.prototype._addKeywordProperty = function() {
   for (var i = 0; i < this.adGroupObjects.length; i++) {
     this.adGroupObjects[i]["negativeKeywords"] = (function(aggregationType, gender, brand, category, keyword, adGroup) {
-      
+
       var negativeKeywords = [];
       if (aggregationType === "BC") {
         if (gender !== "" && gender.length > 0) {
           negativeKeywords = gender.split(",");
           return negativeKeywords;
         }
-        
+
       } else if (aggregationType === "BG" || aggregationType === "BM") {
         if (category !== "" && category.length > 0) {
           var catArray = category.split(",");
@@ -3286,7 +3286,7 @@ NegativeKeywordHandler.prototype._addKeywordProperty = function() {
           }
           return negativeKeywords;
         }
-        
+
       } else if (aggregationType === "CG" ) {
         if (brand !== "" && brand.length > 0) {
           var brandArray = brand.split(",");
@@ -3298,7 +3298,7 @@ NegativeKeywordHandler.prototype._addKeywordProperty = function() {
 
       } else if (aggregationType === "C" ) {
         if (brand !== "" && brand.length > 0 && gender !== "" && gender.length > 0) {
-          
+
           var brandArray = brand.split(",");
           for(var j=0; j < brandArray.length;j++) {
             negativeKeywords.push('"' + brandArray[j] + '"');
@@ -3309,20 +3309,20 @@ NegativeKeywordHandler.prototype._addKeywordProperty = function() {
             negativeKeywords.push('"' + genderArray[j] + '"');
           }
           return negativeKeywords;
-        }  
+        }
       } else if (aggregationType === "B") {
         if (category !== "" && category.length > 0 && gender !== "" && gender.length > 0) {
-          
+
           var catArray = category.split(",");
           for(var j=0; j < catArray.length;j++) {
             negativeKeywords.push('"' + catArray[j] + '"');
           }
-          
+
           var genderArray = gender.split(",");
           for(var j=0; j < genderArray.length;j++) {
             negativeKeywords.push('"' + genderArray[j] + '"');
           }
-          
+
           return negativeKeywords;
         }
       } // END IF B
@@ -3335,7 +3335,7 @@ NegativeKeywordHandler.prototype._addKeywordProperty = function() {
 /**
  * Public function: Adds negative keywords to all adgroups provided inside the adGroups property.
  * @return {void}
- * @throws {exception} 
+ * @throws {exception}
  */
 NegativeKeywordHandler.prototype.addNegativeKeywordsPerAdGroup = function() {
 
@@ -3344,7 +3344,7 @@ NegativeKeywordHandler.prototype.addNegativeKeywordsPerAdGroup = function() {
       this._addNegativeKeywords(this.adGroupObjects[i]);
     }
   } catch(e){ Logger.log("AdGroupObjectIterationException for adding negative keywords."); Logger.log("Specific error : " + e + ". Stacktrace : " + e.stack); Logger.log(" ");}
-  
+
 };
 
 /**
@@ -3358,7 +3358,7 @@ NegativeKeywordHandler.prototype._addNegativeKeywords = function(adGroupObject) 
     .withCondition('CampaignStatus != REMOVED')
     .withCondition('Name = \"' + adGroupObject.adGroup + '\"')
     .get().next();
-  
+
   if (adGroupObject.negativeKeywords) {
     if(DEBUG_MODE == 1) {Logger.log("Adding %s negative keyword(s) to adgroup %s", adGroupObject.negativeKeywords.length, adGroupObject.adGroup);}
     for (var i = 0; i < adGroupObject.negativeKeywords.length; i++) {
@@ -3366,15 +3366,15 @@ NegativeKeywordHandler.prototype._addNegativeKeywords = function(adGroupObject) 
       if(DEBUG_MODE == 1) {Logger.log("Adding negative keyword %s", adGroupObject.negativeKeywords[i]);}
     }
   }
-  
+
   // Create matchtype split campaigns and set exact keyword as negative
   if(NEW_CAMPAIGN_CONFIG.splitByMatchType == 1 && NEW_CAMPAIGN_CONFIG.allowedMatchTypes == "nonExact"){
     var exactKw = '[' + adGroupObject.kwWithUnderscore.split("_").join(" ").replace(/\//g,' ') + ']';
     var reverseExactKw = '[' + adGroupObject.kwWithUnderscore.split("_").reverse().join(" ").replace(/\//g,' ') + ']';
- 
+
     // NO error logging due to missing operation object in API
     var negativeKwOperation = adsApp_adGroup.createNegativeKeyword(exactKw);
-    var negativeReverseKwOp = adsApp_adGroup.createNegativeKeyword(reverseExactKw);  
+    var negativeReverseKwOp = adsApp_adGroup.createNegativeKeyword(reverseExactKw);
   }
 };
 
@@ -3436,10 +3436,10 @@ NegativeKeywordHandler.prototype.addNegativeKeywordToQuerySource = function() {
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 8. SnippetHandler: adds snippets
-// 
+//
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -3466,12 +3466,12 @@ SnippetHandler.prototype.addSnippets = function(adGroupObjects) {
       var brands = this.adGroupObjects[i].brand.split(",").slice(0,10);
       var categories = this.adGroupObjects[i].category.split(",").slice(0,10);
       var genders = this.adGroupObjects[i].gender.split(",");
-      
+
       // List of eligible values: https://support.google.com/adwords/answer/6280012?hl=de
       if(brands.length>2) this.createSingleSnippet(brands, snippetBuilder, adGroup, "Marken");
       if(categories.length>2) this.createSingleSnippet(categories, snippetBuilder, adGroup, "Stile");
       if(genders.length>2) this.createSingleSnippet(genders, snippetBuilder, adGroup, "Modelle");
-      
+
       /*if(typeof SNIPPET_BUILDER_CONFIG !== "undefined"){
         if(typeof SNIPPET_BUILDER_CONFIG.snippetHeader_custom !== "undefined"){}
         for(prop in SNIPPET_BUILDER_CONFIG.snippetHeader_custom) {}
@@ -3507,20 +3507,20 @@ SnippetHandler.prototype.createSingleSnippet = function(list, snippetBuilder, ad
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 5. SitelinkHandler: adds sitelinks, sets end date
-// 
+//
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
 function SitelinkHandler(campaignName) {
-  
+
   this.campaignName = campaignName;
   this.dateYmd = new Date().toISOString().substring(0, 10);
-  
+
   ///////
   /////// 5.1 SitelinkBuilder
   ///////
@@ -3529,8 +3529,8 @@ function SitelinkHandler(campaignName) {
   * 2. Create adgroup sitelinks as needed. NOT IMPLEMENTED ! >> this.campaignSitelinkBuilder = function() {}
   */
   ///////
-  
-  
+
+
   /*
   * @param array adGroupObjects
   * @param object storageHandler
@@ -3540,16 +3540,16 @@ function SitelinkHandler(campaignName) {
   this.createAdGroupSitelinks = function(adGroupObjects, storageHandler) {
 
     this.adGroupObjects = adGroupObjects;
-    
+
     Logger.log("Creating 4-5 adgroup sitelinks for " + this.adGroupObjects.length + " adGroups.");
 
     for(var i=0; i < this.adGroupObjects.length; i++) {
-      
+
       var adGroupObject = this.adGroupObjects[i];
       if(DEBUG_MODE == 1){Logger.log(" "); Logger.log("****"); Logger.log("Initiating adgroup sitelink iteration for adGroup: " + this.adGroupObjects[i].adGroup);}
-      
+
       if(this.checkIfCampaignLimitReached === true) return;
-      
+
       // Find specific ADGROUP of adgroup object via iterator
       try {
         var adGroupIterator = AdsApp.adGroups()
@@ -3558,7 +3558,7 @@ function SitelinkHandler(campaignName) {
         .withCondition('AdGroupName CONTAINS_IGNORE_CASE \"' + adGroupObject.adGroup  + '\"')
         .withCondition("Status = ENABLED")
         .get();
-        
+
         while (adGroupIterator.hasNext()) {
           var adgroup = adGroupIterator.next();
           var adGroupSitelinkIterator = adgroup.extensions().sitelinks().get();
@@ -3568,16 +3568,16 @@ function SitelinkHandler(campaignName) {
             Logger.log("AdGroup" + adgroup.getName() + "contains min "  + SITELINK_BUILDER_CONFIG.maxAmountAdGroupSitelinks + ", thus a sufficient amount. Moving on to next adGroup...");Logger.log(" ");
             continue;
           }
-          
+
           // START specific sitelink creation iterators here
           var logLengthBefore = SITELINK_CREATION_LOG.length;
           var newSLsAfter1stRound = this.createBySingleValue(adgroup, adGroupObject, newSitelinks);
           var newSLsAfter2ndRound = this.createByClicks(adGroupObject, newSLsAfter1stRound);
-          // this.createBySaleCombination(adGroupObject, newSLsAfter2ndRound);        
+          // this.createBySaleCombination(adGroupObject, newSLsAfter2ndRound);
 
           // add fallback or evergreen sitelinks if min of 4 is not reached
           var logLengthDelta = SITELINK_CREATION_LOG.length - logLengthBefore;
-          
+
           if(logLengthDelta < 4){
             var missingSitelinks = 4 - logLengthDelta;
             for (var j=0; j < missingSitelinks; j++) {
@@ -3585,7 +3585,7 @@ function SitelinkHandler(campaignName) {
               this.createFallbackSitelink(adgroup, adGroupObject, fallbackSitelink);
             }
           }
-        } // END WHILE LOOP  
+        } // END WHILE LOOP
       } catch(e) { Logger.log("Adgroup fetch or sitelink operation on " + adGroupObject.adGroup + " not successful."); Logger.log("Error message : " + e.message + ". Stacktrace : " + e.stack);}
     } // END FOR LOOP Adgroup objects
 
@@ -3594,63 +3594,63 @@ function SitelinkHandler(campaignName) {
     }
     SITELINK_CREATION_LOG = []; // Empty sitelink creation log.
   };
-  
-  
+
+
   /*
   * @return {bool} limitReached
   * @throws {exception} SitelinkMaxLimitPerCampaignException
   * @throws {exception} CampaignFetchFailedException
   */
   this.checkIfCampaignLimitReached = function (){
-    
+
     var limitReached = false;
     var campaignSelector = AdsApp.campaigns().withCondition('Name CONTAINS_IGNORE_CASE "' + this.campaignName + '"').withCondition('CampaignStatus != REMOVED').get();
-    
+
     try{
       while (campaignIterator.hasNext()) {
         var campaign = campaignIterator.next();
         var campaignSitelinkSelector = campaign.extensions().sitelinks().get();
-        
+
         if (campaignSitelinkIterator.totalNumEntities() == 10000) {
           limitReached = true;
           Logger.log("SitelinkMaxLimitPerCampaignException: Please split campaign or delete sitelinks.");
         }
       }
     } catch(e){Logger.log("CampaignFetchFailedException: the specified campaign could not be fetched" + e + "." + e.stack);}
-    
+
     return limitReached;
   };
-    
-  
+
+
   ///////
   /////// 5.1.1 createSitelinksBySingleValue
   ///////
-  
+
   /*
-  * @param object adgroup, 
+  * @param object adgroup,
   * @param object adGroupObject
   * @param int maxNewSitelinks
   * @return int remainingSitelinks
-  * @throws exception 
+  * @throws exception
   */
   this.createBySingleValue = function(adgroup, adGroupObject, maxNewSitelinks){
 
     var siteLinkTextBuilderConfig = SITELINK_BUILDER_CONFIG;
-    
+
     var bcgGender = (adGroupObject.brand.length + adGroupObject.category.length > 19 && adGroupObject.gender.split(",").length == 1) ?
       adGroupObject.gender.replace("Damen","D.").replace("Herren","H.").replace("Kinder","K.") : adGroupObject.gender;
     var bcgAffix = adGroupObject.brand.length + adGroupObject.category.length + adGroupObject.gender.length < 24 ? "© " : " ";
-    
+
     var bgAffixLong = "© " + SITELINK_BUILDER_CONFIG.textFillWords.for_value + " ";
     var bgAffix = adGroupObject.brand.length < 13 ? bgAffixLong : " ";
-    
+
     var bcAffixLong = " " + SITELINK_BUILDER_CONFIG.textFillWords.by_value + " ";
     var bcAffix = adGroupObject.brand.length + adGroupObject.category.length < 21 ? bcAffixLong : " ";
     var bcSuffix = adGroupObject.brand.length + adGroupObject.category.length < 20 ? "© " : "";
-    
+
     var cgAffixLong = " " + SITELINK_BUILDER_CONFIG.textFillWords.for_value + " ";
     var cgAffix = adGroupObject.category.length < 21 ? cgAffixLong : "";
-    
+
     var useCgDiscountSuffix = function(adGroupObject){
       var suffix;
       if(adGroupObject.gender.length + adGroupObject.category.length < 12 && adGroupObject.discount > 19 && siteLinkTextBuilderConfig.useDiscountPercentageInText == "YES"){
@@ -3659,7 +3659,7 @@ function SitelinkHandler(campaignName) {
       return suffix;
     };
     var cgSuffix = useCgDiscountSuffix(adGroupObject);
-    
+
     var usebSuffix = function(adGroupObject){
       var bSuffix;
       if(adGroupObject.brand.length < 16 && adGroupObject.discount > 19 && siteLinkTextBuilderConfig.useDiscountPercentageInText == "YES"){
@@ -3668,7 +3668,7 @@ function SitelinkHandler(campaignName) {
       return bSuffix;
     };
     var bSuffix = usebSuffix(adGroupObject);
-    
+
     var usediscountUrlSuffix = function(bSuffix,siteLinkTextBuilderConfig) {
       var urlSuffix;
       if(siteLinkTextBuilderConfig.useDiscountPercentageInText == "YES" && bSuffix.indexOf("%")){
@@ -3677,27 +3677,27 @@ function SitelinkHandler(campaignName) {
       return urlSuffix;
     };
     var discountUrlSuffix = usediscountUrlSuffix(bSuffix,siteLinkTextBuilderConfig);
-    
+
     siteLinkTextBuilderConfig.textBuilder = {
       BCG : {  textSchema : adGroupObject.brand + bcgAffix + bcgGender + " " +adGroupObject.category }, // BCG > Nike Laufschuhe Damen
       BG : { textSchema : adGroupObject.brand + bgAffix + adGroupObject.gender}, // BG > Damen Nike
       BC : { textSchema : adGroupObject.category + bcAffix + adGroupObject.brand + bcSuffix}, //BC > Nike Laufschuhe
-      CG : { textSchema : adGroupObject.category + cgAffix + adGroupObject.gender + cgSuffix }, // CG > Laufschuhe,   
+      CG : { textSchema : adGroupObject.category + cgAffix + adGroupObject.gender + cgSuffix }, // CG > Laufschuhe,
       B : { textSchema : adGroupObject.brand + bSuffix } // B > Nike
     };
-    
-    // Extending textBuilder config object with URL schemata, no configurability planned 
+
+    // Extending textBuilder config object with URL schemata, no configurability planned
     siteLinkTextBuilderConfig.textBuilder.BCG.urlSchema = adGroupObject.brand + " " + adGroupObject.category + " " + adGroupObject.gender;
     siteLinkTextBuilderConfig.textBuilder.BG.urlSchema = adGroupObject.brand + " " + adGroupObject.gender;
     siteLinkTextBuilderConfig.textBuilder.BC.urlSchema = adGroupObject.brand + " " + adGroupObject.category;
     siteLinkTextBuilderConfig.textBuilder.CG.urlSchema = adGroupObject.category + " " + adGroupObject.gender + discountUrlSuffix;
     siteLinkTextBuilderConfig.textBuilder.B.urlSchema = adGroupObject.brand + discountUrlSuffix;
-    
+
     var listBySingleValueObjects = [];
     var aggrType = adGroupObject.aggrega
 tionType;
     var aggregationTypeArray = ["BM", "BCG", "BG", "BC", "CG", "B"];
-    
+
     // removing empty values from textBuilder
     if(adGroupObject.brand.length === 0) {
       siteLinkTextBuilderConfig.textBuilder.BCG = undefined;
@@ -3718,25 +3718,25 @@ tionType;
     // removing Brand type from textBuilder, if not in config array
     if(SITELINK_BUILDER_CONFIG.sitelinkTypes.indexOf("B") == -1) siteLinkTextBuilderConfig.textBuilder.B = undefined;
     if(SITELINK_BUILDER_CONFIG.sitelinkTypes.indexOf("CG") == -1) siteLinkTextBuilderConfig.textBuilder.CG = undefined;
-    
+
     var ownremovedAggrTypeArray = aggregationTypeArray;
-    
+
     try{
-      ownremovedAggrTypeArray.splice(ownremovedAggrTypeArray.indexOf(aggrType),1); // Remove own entry from aggregationTypeArray 
+      ownremovedAggrTypeArray.splice(ownremovedAggrTypeArray.indexOf(aggrType),1); // Remove own entry from aggregationTypeArray
     } catch(e) {
       Logger.log("MissingAggregationTypeException: Type" + aggrType + "not in aggregationTypeArray"); Logger.log("Specific error : " + e);
       Logger.log("Error message " + e.message + ". Stacktrace : " + e.stack);
     }
-    
+
     for(var j=0; j < ownremovedAggrTypeArray.length; j++){
       if(DEBUG_MODE == 1) {Logger.log(" "); Logger.log("Building sitelink list for adGroup " + adGroupObject.adGroup + " (" + aggrType + ") with Type " + ownremovedAggrTypeArray[j]);}
-      
+
       // CASE 1: BCG
       if(aggrType == "BCG"){ // Nike Laufschuhe Damen
-        
+
         var ownremovedConfig = siteLinkTextBuilderConfig.textBuilder;
         if(ownremovedAggrTypeArray[j] == "BM") continue; // Skip BM as giving soruce as it contains no schema
-        
+
         // Make sure "B" is only added once
         if(ownremovedConfig["B"]){
           listBySingleValueObjects.push({
@@ -3744,13 +3744,13 @@ tionType;
             siteLinkUrl : ownremovedConfig["B"].urlSchema
           });
         }
-        
+
         for(var prop in ownremovedConfig) {
-          if(typeof ownremovedConfig[prop] == "undefined") continue;  // Skip if undefined 
+          if(typeof ownremovedConfig[prop] == "undefined") continue;  // Skip if undefined
           if(aggrType == prop || prop == "B") {continue;}
 
           if(siteLinkTextBuilderConfig.skipIfTextTooLong == "YES" && ownremovedConfig[prop].textSchema.length > 25){continue;}
-          
+
           try{
             // Prevent duplicate entries
             var skipEntry = false;
@@ -3766,15 +3766,15 @@ tionType;
           } catch(e){ continue;}
         } // END FOR IN LOOP
       }
-      
+
       // CASE 2: BC or BM or B
       if(aggrType == "BC" || aggrType == "BM" || aggrType == "B"){
-        
+
         var genderArray = adGroupObject.gender.split(",");
         var categoryArray = adGroupObject.category.split(",").slice(0,2);
         var ownremovedConfig = siteLinkTextBuilderConfig.textBuilder;
         if(ownremovedAggrTypeArray[j] == "BM") {continue;} // Skip BM as giving soruce as it contains no schema
-        
+
         // Make sure "B" is only added once
         if(ownremovedConfig["B"]){
           listBySingleValueObjects.push({
@@ -3782,160 +3782,160 @@ tionType;
             siteLinkUrl : ownremovedConfig["B"].urlSchema
           });
         }
-        
+
         if(genderArray.length > 0 && categoryArray.length == 1) {
           for (var k=0; k <genderArray.length; k++) {
             if(genderArray[k].length === 0) continue;
-            
+
             for(var prop in ownremovedConfig) {
-              
+
               try{
                 if(prop == aggrType || prop == "B"){continue;}
-                if(typeof ownremovedConfig[prop] == "undefined") continue;  // Skip if undefined   
+                if(typeof ownremovedConfig[prop] == "undefined") continue;  // Skip if undefined
 
                 if (siteLinkTextBuilderConfig.skipIfTextTooLong == "YES" && ownremovedConfig[prop].textSchema.length > 25){continue;}
                 var regex = new RegExp(adGroupObject.gender, "");
-                
+
                 var bcsitelinkString = ownremovedConfig[prop].textSchema.replace(regex, function(match) { return match.split(",")[k]; });
                 var urlString = ownremovedConfig[prop].urlSchema.replace(" Unisex","").replace(regex, function(match) { return match.split(",")[k]; });
-                
+
                 // Edge case if multiple gender values with long category and brand name
                 if(genderArray.length > 1 && bcsitelinkString > 25) {
                   var bcShortSitelinkString = bcsitelinkString.replace("Damen","D.").replace("Herren","H.").replace("Kinder","K.");
                   Logger.log("New string: " + bcsitelinkString);
                 }
                 var bcNewSitelinkString = bcShortSitelinkString ? bcShortSitelinkString : bcsitelinkString;
-                
+
                 // Prevent duplicate entries
                 var skipEntry = false;
-                for(var i=0; i<listBySingleValueObjects.length; i++) { 
-                  if(listBySingleValueObjects[i].siteLinkText == bcNewSitelinkString.substring(25,0)) skipEntry = true; 
+                for(var i=0; i<listBySingleValueObjects.length; i++) {
+                  if(listBySingleValueObjects[i].siteLinkText == bcNewSitelinkString.substring(25,0)) skipEntry = true;
                 }
                 if(skipEntry === true) continue;
 
-                listBySingleValueObjects.push({ 
+                listBySingleValueObjects.push({
                   siteLinkText : bcNewSitelinkString.substring(25,0),
-                  siteLinkUrl : urlString 
+                  siteLinkUrl : urlString
                 });
-                
-              } catch(e){ 
+
+              } catch(e){
                 Logger.log("Specific error for " + prop + " : " + e); Logger.log(" ");
-                continue; 
-              }  
-            } // END FOR IN config loop  
-          } // END FOR gender array loop 
+                continue;
+              }
+            } // END FOR IN config loop
+          } // END FOR gender array loop
         } // END if gender > 0
       }
-      
+
       // CASE 3: BG or B
-      if(aggrType == "BG" || aggrType == "B"){ 
-        
+      if(aggrType == "BG" || aggrType == "B"){
+
         var categoryArray = adGroupObject.category.split(",").slice(0,2);
         var genderArray = adGroupObject.gender.split(",").slice(0,2);
         var ownremovedConfig = siteLinkTextBuilderConfig.textBuilder;
-        
+
         if(ownremovedAggrTypeArray[j] == "BM") {continue;} // Skip BM as giving soruce as it contains no schema
-        
+
         if(categoryArray.length > 0 && genderArray.length == 1) {
           for (var k=0; k <categoryArray.length; k++) {
-            if(categoryArray[k].length == 0) continue;  
-            
-            for(var prop in ownremovedConfig) { 
+            if(categoryArray[k].length == 0) continue;
+
+            for(var prop in ownremovedConfig) {
               try{
-                if(prop == aggrType) continue; 
-                if(typeof ownremovedConfig[prop] == "undefined") continue;  // Skip if undefined 
+                if(prop == aggrType) continue;
+                if(typeof ownremovedConfig[prop] == "undefined") continue;  // Skip if undefined
 
                 if (siteLinkTextBuilderConfig.skipIfTextTooLong == "YES" && ownremovedConfig[prop].textSchema.length > 25){continue;}
-                var regex = new RegExp(adGroupObject.category, ""); 
-                
+                var regex = new RegExp(adGroupObject.category, "");
+
                 var sitelinkString = ownremovedConfig[prop].textSchema.replace(regex, function(match) { return match.split(",")[k]; });
                 var urlString = ownremovedConfig[prop].urlSchema.replace(regex, function(match) { return match.split(",")[k]; });
 
                 // Prevent duplicate entries
                 var skipEntry = false;
-                for(var i=0; i<listBySingleValueObjects.length; i++) { 
-                  if(listBySingleValueObjects[i].siteLinkText == sitelinkString.substring(25,0)) skipEntry = true; 
+                for(var i=0; i<listBySingleValueObjects.length; i++) {
+                  if(listBySingleValueObjects[i].siteLinkText == sitelinkString.substring(25,0)) skipEntry = true;
                 }
                 if(skipEntry == true) continue;
 
-                listBySingleValueObjects.push({ 
+                listBySingleValueObjects.push({
                   siteLinkText : sitelinkString.substring(25,0),
                   siteLinkUrl : urlString // >> @TODO NEW: UrlHandler.getFinalUrl(urlPrefix, urlIdentFragment)
                 });
-              } catch(e){ continue;} 
-            } // END FOR IN config loop 
-            
-          } // END FOR category array loop 
+              } catch(e){ continue;}
+            } // END FOR IN config loop
+
+          } // END FOR category array loop
         } // END if category > 0
       }
-      
+
       // CASE 4: CG
       if(aggrType == "CG"){
-        
+
         var brandArray = adGroupObject.brand.split(",").slice(0,2);
         var ownremovedConfig = siteLinkTextBuilderConfig.textBuilder;
-        
+
         if(ownremovedAggrTypeArray[j] == "BM") {continue;} // Skip BM as giving soruce as it contains no schema
-        
+
         if(brandArray.length > 0) {
           for (var k=0; k <brandArray.length; k++) {
             if(brandArray[k].length == 0) continue;
-            
-            for(var prop in ownremovedConfig) { 
+
+            for(var prop in ownremovedConfig) {
               try{
                 if(prop == aggrType || prop == "B"){continue;}
                 if(typeof ownremovedConfig[prop] == "undefined") continue;  // Skip if undefined
 
                 if (siteLinkTextBuilderConfig.skipIfTextTooLong == "YES" && ownremovedConfig[prop].textSchema.length > 25){continue;}
-                
-                var regex = new RegExp(adGroupObject.brand, ""); 
+
+                var regex = new RegExp(adGroupObject.brand, "");
                 var sitelinkString = ownremovedConfig[prop].textSchema.replace(regex, function(match) { return match.split(",")[k]; });
                 var urlString = ownremovedConfig[prop].urlSchema.replace(regex, function(match) { return match.split(",")[k]; });
 
                 // Prevent duplicate entries
                 var skipEntry = false;
-                for(var i=0; i<listBySingleValueObjects.length; i++) { 
-                  if(listBySingleValueObjects[i].siteLinkText == sitelinkString.substring(25,0)) skipEntry = true; 
+                for(var i=0; i<listBySingleValueObjects.length; i++) {
+                  if(listBySingleValueObjects[i].siteLinkText == sitelinkString.substring(25,0)) skipEntry = true;
                 }
                 if(skipEntry == true) continue;
-                
-                listBySingleValueObjects.push({ 
+
+                listBySingleValueObjects.push({
                   siteLinkText : sitelinkString.substring(25,0),
                   siteLinkUrl : urlString // >> @TODO NEW: UrlHandler.getFinalUrl(urlPrefix, urlIdentFragment)
                 });
               } catch(e){ continue; }
-            } // END for in config loop 
-            
-          } // END FOR brand array loop 
+            } // END for in config loop
+
+          } // END FOR brand array loop
         } // END if brand > 0
       }
-      
+
       break;
     } // END For loop ownremovedAggrTypeArray
-    
+
     if(listBySingleValueObjects.length > 4) listBySingleValueObjects.length = 4;
     if(DEBUG_MODE == 1) {Logger.log("Sitelink data for " + adGroupObject.adGroup + " with length " + listBySingleValueObjects.length + " : " + JSON.stringify(listBySingleValueObjects)); Logger.log(" ");}
     var createdSitelinks = this.setAdGroupSitelinks(adgroup, adGroupObject, listBySingleValueObjects);
     var remainingSitelinks = maxNewSitelinks - createdSitelinks;
-   
+
     return remainingSitelinks;
   }
-  
+
   ///////
   /////// 5.1.2 createSitelinksByClicks
   /////// Every adgroup gets the top 10 adgroups by parent-node by clicks as sitelinks
   ///////
-  
+
   /*
   * @param object adGroupObject
   * @param int maxNewSitelinks
   * @return int remainingSitelinks
   */
   this.createByClicks = function(adGroupObject, newSLsAfter1stRound){
-    
-    var listByClicks = [];     
+
+    var listByClicks = [];
     var aggregationReference = this.determineAggregationReference(adGroupObject);
-    
+
     var adGroupIterator = AdsApp.adGroups()
     .withCondition('CampaignName = "' + this.campaignName + '"')
     .withCondition('CampaignStatus != REMOVED')
@@ -3946,23 +3946,23 @@ tionType;
     .orderBy("Clicks DESC")
     .withLimit(SITELINK_BUILDER_CONFIG.maxAdGroupSitelinksPerType)
     .get();
-    
+
     try{
       while (adGroupIterator.hasNext()) {
         var adgroup = adGroupIterator.next();
         var adGroupNameCleaned = adGroup.getName().replace("_"," ");
-        
+
         listByClicks.push(
-          { 
+          {
             siteLinkText : adGroupNameCleaned.substring(25,0),
             siteLinkUrl : adGroupNameCleaned // >> @TODO NEW: UrlHandler.getFinalUrl(urlPrefix, urlIdentFragment)
           });
       }
-      if(DEBUG_MODE == 1) {Logger.log("Found " + listByClicks.length + " top adgroups for given criteria. First item : " + listByClicks[0]);}    
+      if(DEBUG_MODE == 1) {Logger.log("Found " + listByClicks.length + " top adgroups for given criteria. First item : " + listByClicks[0]);}
     } catch(e) {
       Logger.log("The adgroup fetch for " + adGroup.getName() + "returned no adGroups with min "  + SITELINK_BUILDER_CONFIG.minClicksForTopAdGroups + " clicks. Moving on...");
-    }   
-    
+    }
+
     // Fetching the actual adGroup to create the found sitelinks
     try{
       var adGroupIterator = AdsApp.adGroups()
@@ -3971,51 +3971,51 @@ tionType;
       .withCondition('AdGroupName CONTAINS_IGNORE_CASE \"' + adGroupObject.adGroup + '\"')
       .get();
     }catch(e){ Logger.log("ParsingErrorInSelectorExpection: Specific error" + e + " . " + e.stack)}
-    
-    
+
+
     while (adGroupIterator.hasNext()) {
-      var focusAdgroup = adGroupIterator.next();      
+      var focusAdgroup = adGroupIterator.next();
       var createdSitelinks = this.setAdGroupSitelinks(focusAdgroup, adGroupObject, listByClicks);
-      var remainingSitelinks = SITELINK_BUILDER_CONFIG.maxAmountAdGroupSitelink - createdSitelinks; 
-    }  
+      var remainingSitelinks = SITELINK_BUILDER_CONFIG.maxAmountAdGroupSitelink - createdSitelinks;
+    }
     return remainingSitelinks;
-  } 
-  
+  }
+
   /*
   * @param object adGroupObject
   * @return array aggregationReference, i.e. if brand, category, brand-cat or brand-gen
   */
-  
+
   this.determineAggregationReference = function(adGroupObject) {
-    
+
     var aggregationType = adGroupObject.aggregationType;
     var aggregationReference;
-    
-    // @ADDON: Special case for subcategory BCG: BC or BG? 
+
+    // @ADDON: Special case for subcategory BCG: BC or BG?
     if(aggregationType.charAt(0) == "B"){
       aggregationReference = "brand";
-    } else 
+    } else
       if (aggregationType.charAt(0) == "C") {
         aggregationReference = "category";
       }
-    
+
     return aggregationReference;
   }
-  
-  
-  
+
+
+
   ///////
   /////// 5.1.3 createBySaleCombinations
   ///////
-  
+
   this.createBySaleCombinations = function(){} // @TODO use logic of 5.1.2 but add sale
-  
-  
-  
+
+
+
   ///////
   /////// 5.1.5 Generic Builder Methods
   ///////
-  
+
   /*
   * @param object adgroup
   * @param object adGroupObject
@@ -4025,16 +4025,16 @@ tionType;
   * @throws exception NoSitelinkException
   */
   this.setAdGroupSitelinks = function(adgroup, adGroupObject, sitelinkList) {
-    
+
     var createdSitelinks = 0;
-    
+
     // StorageHandler.getIdExclusionStatement(adGroup, sitelinkList);
-    
-    var adGroupSitelinkIterator = adgroup.extensions().sitelinks().get(); 
-    
+
+    var adGroupSitelinkIterator = adgroup.extensions().sitelinks().get();
+
     for (i = 0; i < sitelinkList.length; i++) {
       // CHECK if sitelink already exists @TODO: Write log service
-      try{     
+      try{
         if(adGroupSitelinkIterator.totalNumEntities() > this.maxAddedAdGroupSitelinks) {
           Logger.log("The adGroup " +  adgroup.getName() + " has alreay reached the max amount of sitelinks"); Logger.log(" ");
           break;
@@ -4042,19 +4042,19 @@ tionType;
       } catch(e){
         Logger.log("NoSitelinkException: There are no sitelinks for"  +  adgroup.getName() + ". Starting creation ... "); Logger.log("Specific error : " + e);Logger.log(" ");
       }
-      
+
       // Start creation of sitelink
       if(sitelinkList[i]){
         var singleSiteLinkObject = sitelinkList[i];
         createdSitelinks += this.createSingleSitelink(adgroup, adGroupObject, singleSiteLinkObject);
       }
     } // END FOR LOOP Sitelinklist
-    
+
     return createdSitelinks;
   }
 
-  
-  
+
+
   /*
   * @param object adgroup
   * @param object adGroupObject
@@ -4078,8 +4078,8 @@ tionType;
     if(URL_SCHEMA.addParameters == "YES") {
       var urlParameters = this.getUrlParameters(adGroupObject.campaign);
       finalUrl += urlParameters;
-    }    
-    
+    }
+
     var creationResult = 0;
     if(DEBUG_MODE == 1) {Logger.log("sitelink URL: " + finalUrl);}
 
@@ -4091,14 +4091,14 @@ tionType;
       .withFinalUrl(finalUrl)
       .build()
       .getResult();
-      
+
       var sitelinkOperation = adgroup.addSitelink(newSitelink);
-      
+
       if (sitelinkOperation.isSuccessful()) {
         creationResult = 1;
-        
+
         var sitelinkName = singleSitelink.siteLinkUrl.replace(/ |_/g,"_");
-        
+
         // EGDE CASE CG & SALE: TIED to implementation that type CG uses SaleSuffix, cutting of salesuffix for clean sitelinkname
         var sitelinkNameClean;
         if(sitelinkName.indexOf("_Sale") != -1 && SITELINK_BUILDER_CONFIG.useDiscountPercentageInText == "YES") {
@@ -4106,14 +4106,14 @@ tionType;
         } else {
           sitelinkNameClean = sitelinkName
         };
-        
+
         var sitelinkCreationLogObject = {
           "id" : sitelinkOperation.getResult().getId(),
           "entityName" : sitelinkNameClean.toLowerCase(),
           "entityType" : "adGroupSitelink",
           "campaignName" : this.campaignName,
           "campaignId" : adgroup.getCampaign().getId(),
-          "adgroupName" : adgroup.getName(), 
+          "adgroupName" : adgroup.getName(),
           "adgroupId" : adgroup.getId(),
           "creationDate" : this.dateYmd,
           "status" : "enabled"
@@ -4122,21 +4122,21 @@ tionType;
         SITELINK_CREATION_LOG.push(sitelinkCreationLogObject);
       } else {
         var siteLinkErrors = sitelinkOperation.getErrors();
-        
+
         var errorRow = [TIME_STAMP, "Sitelink" , "Failed", siteLinkErrors, this.campaignName, adgroup.getName() , "", "", "", "", "", "", "", "", "", "","","",singleSitelink.siteLinkText,"","","",""];
-        ERROR_LOG.push(errorRow);  
+        ERROR_LOG.push(errorRow);
         ERROR_SUMMARY_OBJECT.siteLinkErrorCount++;
         Logger.log("Sitelink Exception: The sitelink operation for sitelink " + singleSitelink.textSchema + " in " + adgroup.getName() + " showed an error. ");
       }
-      
+
     } catch(e){
-      Logger.log("SitelinkCreationEception: The sitelink " + singleSitelink.textSchema + " for "  +  adgroup.getName() + " could NOT be added."); 
+      Logger.log("SitelinkCreationEception: The sitelink " + singleSitelink.textSchema + " for "  +  adgroup.getName() + " could NOT be added.");
       Logger.log("Specific error : " + e + ". Stacktrace : " + e.stack); Logger.log(" ");
       ERROR_SUMMARY_OBJECT.siteLinkErrorCount++;
     }
-    return creationResult;    
+    return creationResult;
   }
-  
+
   /*
   * @return string urlPrefix
   */
@@ -4154,7 +4154,7 @@ tionType;
   */
   this.cleanAndRemoveStopWords = function(uri){
     var cleanedUri = uri;
-    
+
     for(var i=0; i < URL_SCHEMA.sitelinkSearchUrl_wordsToRemove.length; i++){
       var regexString = new RegExp(URL_SCHEMA.sitelinkSearchUrl_wordsToRemove[i], "i");
       cleanedUri = cleanedUri.replace(regexString, "");
@@ -4176,11 +4176,11 @@ tionType;
 
     return dynUrlParamString;
   }
-  
 
 
 
-   
+
+
   /*
   * @param object adgroup
   * @param object adgroupObject
@@ -4189,49 +4189,49 @@ tionType;
   * @throws exception SitelinkCreationEception
   */
   this.createFallbackSitelink = function(adgroup, adGroupObject, fallbackSitelink) {
-    
-    this.sitelinkBuilder = AdsApp.extensions().newSitelinkBuilder(); 
+
+    this.sitelinkBuilder = AdsApp.extensions().newSitelinkBuilder();
     var fallbackSitelinkUrl = fallbackSitelink.url;
-    
+
     if(URL_SCHEMA.addParameters == "YES"){
       var urlParameterString =  fallbackSitelink.url.indexOf("?") == -1 ? "?":  "&" ;
       urlParameterString += URL_SCHEMA.urlParameters.replace("adGroup/keyword","sitelink");
       var regexString = new RegExp("campaign", "i");
       var dynUrlParamString = urlParameterString.replace(regexString, adGroupObject.campaign);
-      
+
       fallbackSitelinkUrl += dynUrlParamString;
     }
-    
-    var creationResult = 0; 
-    
+
+    var creationResult = 0;
+
     try{
       var newSitelink = this.sitelinkBuilder
       .withLinkText(fallbackSitelink.text)
       .withFinalUrl(fallbackSitelinkUrl)
       .build()
       .getResult();
-      
+
       var sitelinkOperation = adgroup.addSitelink(newSitelink);
-      
-      if (sitelinkOperation.isSuccessful()) { creationResult = 1; } 
+
+      if (sitelinkOperation.isSuccessful()) { creationResult = 1; }
       else {
         var siteLinkErrors = sitelinkOperation.getErrors();
-        
+
         var errorRow = [TIME_STAMP, "Sitelink" , "Failed", siteLinkErrors, this.campaignName, adgroup.getName() , "", "", "", "", "", "", "", "", "", "","","",fallbackSitelink.text,"","","",""];
-        ERROR_LOG.push(errorRow);  
+        ERROR_LOG.push(errorRow);
         ERROR_SUMMARY_OBJECT.siteLinkErrorCount++;
         Logger.log("Sitelink Exception: The sitelink operation for sitelink " + fallbackSitelink.text + " in " + adgroup.getName() + " showed an error.");
       }
-      
+
     } catch(e){
-      Logger.log("SitelinkCreationEception: The sitelink " + fallbackSitelink.text + " for "  +  adgroup.getName() + " could NOT be added."); 
-      Logger.log("Specific error : " + e +". Error message : " + e.message + ". Stacktrace : " + e.stack); Logger.log(" "); 
+      Logger.log("SitelinkCreationEception: The sitelink " + fallbackSitelink.text + " for "  +  adgroup.getName() + " could NOT be added.");
+      Logger.log("Specific error : " + e +". Error message : " + e.message + ". Stacktrace : " + e.stack); Logger.log(" ");
       ERROR_SUMMARY_OBJECT.siteLinkErrorCount++;
     }
-    return creationResult;    
+    return creationResult;
   }
-  
-  
+
+
   ///////
   /////// 5.2 SitelinkDateHandler: activates and pauses sitelinks by changing end date
   ///////
@@ -4240,56 +4240,56 @@ tionType;
   * - convert sitelinkLookupnsme in select-in statement for BigQuery Tabelle slNames-2-IDs with where statement enabled
   * - update sitelink status in bigquery
   * - BigQuery returns sitelinkID Array
-  * - id array is split into 10k chunks and handed to selector as withId Statement to update end dates 
-  * - operation is captures as result, all errors are logged, errorArray is sent as statusReset Query to 
+  * - id array is split into 10k chunks and handed to selector as withId Statement to update end dates
+  * - operation is captures as result, all errors are logged, errorArray is sent as statusReset Query to
   */
-  
-  
+
+
   /*
   * @param {array} adGroupList
   * @param {array} aggregationTypes
   * @return {array} sitelinkNames
   */
   this.convertAdGroupListToSitelinkNames = function(adGroupList, aggregationTypes) {
-    
+
     var sitelinkNames = [];
 
     try{
     	if (typeof adGroupList !== "undefined"){
-	    	for(var i=0; i < adGroupList.length; i++) {     
+	    	for(var i=0; i < adGroupList.length; i++) {
 	        // Loop through every aggregation type
 	        var sitelinkName = adGroupList[i].replace("_Feed_BCG","").replace("_Feed_BC","").replace("_Feed_BM","").replace("_Feed_BG","").replace(/ /g,"_").toLowerCase();
 	        sitelinkNames.push(sitelinkName);
 	      }
     	}
     } catch(e){ Logger.log("AdGroup2SitelinkName_ConversionException: " + e  + ". stack : " + e.stack)}
-    
+
   return sitelinkNames;
   }
 
   /*
   * @param {array} adGroupList, either toBePaused or to be activated
-  * @param {bool} status, the 
+  * @param {bool} status, the
   * @param {object} storageHandler
   * @return {void}
   * @throws {exception} EmptyResponseException
   */
   this.setSitelinkEndDateByStatus = function(adGroupList, newStatus, storageHandler) {
-   
+
     var oldStatus = newStatus == "enabled" ? "paused" : "enabled";
-    
+
     var dateToday = this.dateYmd.replace(/-/g,"");
     var sitelinkNames = this.convertAdGroupListToSitelinkNames(adGroupList);
     Logger.log("Setting status " + newStatus + " (via end date change) to " + sitelinkNames.length + " sitelinkNames.");
-    if(DEBUG_MODE == 1) {Logger.log("convertAdGroupListToSitelinkNames : " + sitelinkNames);} 
-                                                     
+    if(DEBUG_MODE == 1) {Logger.log("convertAdGroupListToSitelinkNames : " + sitelinkNames);}
+
     var sitelinkIds = [];
-    
-    try{  
+
+    try{
       if(sitelinkNames.length > 0){
-        
+
         sitelinkIds = storageHandler.getSitelinkIdsByNameAndStatus(sitelinkNames, this.campaignName, "adGroup_sitelinks", oldStatus);
-        
+
         // Only load sitelinks created by script and with min x impression in definded time range
         var sitelinkIterator = AdsApp.extensions().sitelinks()
         .withIds([ sitelinkIds.join(",") ])
@@ -4297,17 +4297,17 @@ tionType;
         // .forDateRange(SITELINK_BUILDER_CONFIG.periodOfImpressionsForDateHandler)
         // .orderBy("Impressions DESC")
         .get();
-        
+
         while (sitelinkIterator.hasNext()) {
           var sitelink = sitelinkIterator.next();
           var endDateYmdByStatus = newStatus == "enabled" ? "" : dateToday;
           var sitelinkOperation = sitelink.setEndDate(endDateYmdByStatus);
           // if(sitelinkOperation.getErrors().length > 0) {Logger.log(sitelink.getId());}
         }
-        // @TODO: reset status via storage handler if sitelinkoperation failed 
+        // @TODO: reset status via storage handler if sitelinkoperation failed
       }
-      
-    } catch(e){ 
+
+    } catch(e){
       Logger.log("EmptyResponseException: No sitelinks to be set to " + newStatus + "."); Logger.log("Specific error : " + e);
     }
  }
@@ -4323,25 +4323,25 @@ tionType;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 6. StorageHandler: saves and retrieves data from Google Sheet
-// 
+//
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
 function StorageHandler(){
-  
-  /* Docs: 
+
+  /* Docs:
   * https://developers.google.com/adwords/scripts/docs/examples/google-bigquery
   * https://cloud.google.com/bigquery/docs/reference/rest/v2/
   * https://developers.google.com/apps-script/advanced/bigquery
   */
-  
-  this.projectId = 'adwords-scripts-big-query';
-  this.accountName = AdsApp.currentAccount().getName().replace(/[^a-zA-Z0-9 ]/g, "").replace(/ /g,"");   
-  this.accountId = AdsApp.currentAccount().getCustomerId().replace(/[^a-zA-Z0-9 ]/g, "");   
+
+  this.projectId = 'feeddataaggregation';
+  this.accountName = AdsApp.currentAccount().getName().replace(/[^a-zA-Z0-9 ]/g, "").replace(/ /g,"");
+  this.accountId = AdsApp.currentAccount().getCustomerId().replace(/[^a-zA-Z0-9 ]/g, "");
   this.dataSetId = this.accountName + "_" + this.accountId + "_" + "nrFeedCampaign_EntityLog";
-  
+
   /* Compound method to initialize database
   * @param {string} tableName
   * @param {array} fieldSchemaArray
@@ -4349,39 +4349,39 @@ function StorageHandler(){
   * @throws {error} BigQueryAuthorizationError
   */
   this.initDb = function(tableName, fieldSchemaArray){
-    
+
     try{
       var queryRequest = BigQuery.newQueryRequest();
       var fullTableName = this.projectId + ':' + this.dataSetId + '.' + tableName;
       queryRequest.query = 'select * from [' + fullTableName + '] LIMIT 1;';
       var query = BigQuery.Jobs.query(queryRequest, this.projectId);
- 
+
       Logger.log("BigQuery database '" + fullTableName + "' initialized.");
     } catch(e){
       try{
         this.createDataSet();
         this.createTable(tableName, fieldSchemaArray);
-        
+
         var queryRequest = BigQuery.newQueryRequest();
         var fullTableName = this.projectId + ':' + this.dataSetId + '.' + tableName;
         queryRequest.query = 'select * from [' + fullTableName + '] LIMIT 1;';
-        var query = BigQuery.Jobs.query(queryRequest, this.projectId); 
-        Logger.log("BigQuery database '" + fullTableName + "' initialized."); 
-        
+        var query = BigQuery.Jobs.query(queryRequest, this.projectId);
+        Logger.log("BigQuery database '" + fullTableName + "' initialized.");
+
       } catch(e2){
         throw new Error("BigQueryAuthorizationError: " + e2 + ". Stacktrace : " + e2.stack); Logger.log("If script is triggered by a non-norisk user, make sure to add the norisk-user as owner to grant BigQuery-UserAccess.");
-      }    
-    }    
+      }
+    }
   }
-  
+
   /*
-  * @param {string} projectId 
+  * @param {string} projectId
   * @param {string} dataSetId
   * @return void
   * @throws {exception} DataSetCreationException
   */
   this.createDataSet = function() {
-    
+
     try{
       var dataSet = BigQuery.newDataset();
       dataSet.id = this.dataSetId;
@@ -4389,131 +4389,131 @@ function StorageHandler(){
       dataSet.datasetReference = BigQuery.newDatasetReference();
       dataSet.datasetReference.projectId = this.projectId;
       dataSet.datasetReference.datasetId = this.dataSetId;
-      dataSet = BigQuery.Datasets.insert(dataSet, this.projectId); 
-      
+      dataSet = BigQuery.Datasets.insert(dataSet, this.projectId);
+
       Logger.log('Data set with ID = %s, Name = %s created.', dataSet.id, dataSet.friendlyName);
     } catch(e){
       Logger.log("DatasetCreationException: The dataSetId " + this.dataSetId + " already exists. ");
     }
   }
-  
+
   /*
   * @param {string} tableName
   * @param {array} fieldSchemaArray
   * @return {void}
   * @throws {exception} TableCreationException
-  */ 
+  */
   this.createTable = function(tableName, fieldSchemaArray) {
-    
+
     try{
       var table = BigQuery.newTable();
-      var schema = BigQuery.newTableSchema(); 
+      var schema = BigQuery.newTableSchema();
       schema.fields = fieldSchemaArray;
-      
+
       table.schema = schema;
       table.id = tableName;
       table.friendlyName = 'Entity Creation Log for ' + tableName;
-      
+
       table.tableReference = BigQuery.newTableReference();
       table.tableReference.datasetId = this.dataSetId;
       table.tableReference.projectId = this.projectId;
       table.tableReference.tableId = tableName;
       table = BigQuery.Tables.insert(table, this.projectId, this.dataSetId);
-      
+
       Logger.log('Data table with ID = %s, Name = %s created.', table.id, table.friendlyName);
     } catch(e) {
       Logger.log("TableCreationException: The tableId " + tableName + " already exists. "); Logger.log(e);
-    } 
+    }
   }
-  
-  
+
+
   /* ABSTRACT METHOD FOR GENERIC USE
   * @return {array} fieldSchemaArray
   */
   this.generateFieldSchemaArray = function(){
-    
+
    var fieldSchemaArray = [];
-    
+
     // Specific sitelink table implementation
     var idFieldSchema = BigQuery.newTableFieldSchema();
     idFieldSchema.description = 'the adwords ID of the sitelink';
     idFieldSchema.name = 'id';
     idFieldSchema.type = 'STRING';
-    
+
     var entityNameFieldSchema = BigQuery.newTableFieldSchema();
     entityNameFieldSchema.description = 'the name of the sitelink';
     entityNameFieldSchema.name = 'entityName';
     entityNameFieldSchema.type = 'STRING';
-    
+
     var entityTypeFieldSchema = BigQuery.newTableFieldSchema();
     entityTypeFieldSchema.description = 'the entity type, ie adgroup, sitelink etc';
     entityTypeFieldSchema.name = 'entityType';
     entityTypeFieldSchema.type = 'STRING';
-    
+
     var campaignNameFieldSchema = BigQuery.newTableFieldSchema();
     campaignNameFieldSchema.name = 'campaignName';
     campaignNameFieldSchema.type = 'STRING';
-    
+
     var campaignIdFieldSchema = BigQuery.newTableFieldSchema();
     campaignIdFieldSchema.name = 'campaignId';
     campaignIdFieldSchema.type = 'STRING';
-    
+
     var adgroupNameFieldSchema = BigQuery.newTableFieldSchema();
     adgroupNameFieldSchema.name = 'adgroupName';
     adgroupNameFieldSchema.type = 'STRING';
-    
+
     var adgroupIdFieldSchema = BigQuery.newTableFieldSchema();
     adgroupIdFieldSchema.name = 'adgroupId';
     adgroupIdFieldSchema.type = 'STRING';
-    
+
     var creationDateFieldSchema = BigQuery.newTableFieldSchema();
     creationDateFieldSchema.name = 'creationDate';
     creationDateFieldSchema.type = 'DATE';
-    
+
     var updateDateFieldSchema = BigQuery.newTableFieldSchema();
     updateDateFieldSchema.name = 'updateDate';
     updateDateFieldSchema.type = 'DATE';
-    
+
     var statusFieldSchema = BigQuery.newTableFieldSchema();
     statusFieldSchema.description = 'the entity status';
     statusFieldSchema.name = 'status';
-    statusFieldSchema.type = 'STRING'; 
-    
+    statusFieldSchema.type = 'STRING';
+
     var fieldSchemaArray = [idFieldSchema, entityNameFieldSchema, entityTypeFieldSchema, campaignNameFieldSchema, campaignIdFieldSchema, adgroupNameFieldSchema, adgroupIdFieldSchema, creationDateFieldSchema, updateDateFieldSchema, statusFieldSchema];
-    
+
     return fieldSchemaArray;
   }
-  
-  
+
+
   /*
   * @param array createdEntitiesLog. an array of objects
   * @param string tableName
   * @return void
   * @throws exception EmptyRowRequest_Exception
-  */  
+  */
   this.writeRowstoStorage = function(createdEntitiesLog, tableName) {
-    
+
     var insertAllRequest = BigQuery.newTableDataInsertAllRequest();
     insertAllRequest.rows = [];
-    
+
     for(var i=0; i< createdEntitiesLog.length;i++){
       var newRow = BigQuery.newTableDataInsertAllRequestRows();
       newRow.insertId = createdEntitiesLog[i].sitelinkId;
       newRow.json = createdEntitiesLog[i];
       insertAllRequest.rows.push(newRow);
     }
-    
+
     try{
       var result = BigQuery.Tabledata.insertAll(insertAllRequest, this.projectId, this.dataSetId, tableName);
     } catch(e){ Logger.log("EmptyRowRequest_Exception : No new created entities to log. " + e); Logger.log("Stacktrace: " + e);}
-    
+
     try{
       if(result.insertErrors != null) {
-        var allErrors = []; 
+        var allErrors = [];
         for (var i = 0; i < result.insertErrors.length; i++) {
           var insertError = result.insertErrors[i];
           allErrors.push(Utilities.formatString('Error inserting item: %s', insertError.index));
-          
+
           for (var j = 0; j < insertError.errors.length; j++) {
             var error = insertError.errors[j];
             allErrors.push(Utilities.formatString('- ' + error));
@@ -4523,9 +4523,9 @@ function StorageHandler(){
       } else if(DEBUG_MODE == 1) {Logger.log(Utilities.formatString('%s data rows inserted successfully.', insertAllRequest.rows.length)); Logger.log(" ");}
     } catch(e){Logger.log("InsertErrors_Exception : " + e + " . " + e.stack);}
   }
-  
- 
-  
+
+
+
   /*
   * @param {array} whereClauseArray
   * @param {string} campaignName
@@ -4535,16 +4535,16 @@ function StorageHandler(){
   * @throws {exception} EmptyResponseException
   */
   this.getSitelinkIdsByNameAndStatus = function(whereClauseArray, campaignName, tableName, oldStatus) {
-    
+
     var queryFieldArray = ['id'];
-    
+
     var queryRequest = BigQuery.newQueryRequest();
     var fullTableName = this.projectId + ':' + this.dataSetId + '.' + tableName;
     queryRequest.query = this.buildQueryByParameters(queryFieldArray, whereClauseArray, campaignName, oldStatus, fullTableName);
     var query = BigQuery.Jobs.query(queryRequest, this.projectId);
-    
+
     var sitelinkIds = [];
-    
+
     if (query.jobComplete) {
       try{
         for (var i = 0; i < query.rows.length; i++) {
@@ -4555,58 +4555,58 @@ function StorageHandler(){
           }
           sitelinkIds.push(values);
         }
-      } catch(e){Logger.log("EmptyResponseException : No sitelinkIds were returned for this sitelinkNameList."); Logger.log("Specific error : " + e); Logger.log(" ");}  
-    }  
+      } catch(e){Logger.log("EmptyResponseException : No sitelinkIds were returned for this sitelinkNameList."); Logger.log("Specific error : " + e); Logger.log(" ");}
+    }
 
     Logger.log("sitelinkIds : " + sitelinkIds);
-    
+
     // ex-ante update of bigQuery entity status before ads operation
     var newStatus = oldStatus == "enabled" ? "paused" : "enabled";
     // this.updateStatusInStorageById(sitelinkIds, newStatus, tableName);
-    
+
     return sitelinkIds;
   }
-    
-  
+
+
   /*
   * @param {array} fieldArray
   * @param {array} whereClauseArray
   * @param {string} campaignName, status, fullTableName
   * @return {string} fullQuery
-  */  
+  */
   this.buildQueryByParameters = function(fieldArray, whereClauseArray, campaignName, status, fullTableName){
-    
-    var fullQuery = 'select ' + fieldArray +' from [' + fullTableName + '] WHERE status = "' + status + '" AND campaignName = "' + campaignName + 
-      '" AND entityName IN ("' + whereClauseArray.join('","') + '")'; 
+
+    var fullQuery = 'select ' + fieldArray +' from [' + fullTableName + '] WHERE status = "' + status + '" AND campaignName = "' + campaignName +
+      '" AND entityName IN ("' + whereClauseArray.join('","') + '")';
     if(DEBUG_MODE == 1) {Logger.log("full SELECT Query: '" + fullQuery + "'");}
-    
+
     return fullQuery;
   }
 
-  
+
   /*
   * @param array entityIdArray an array of strings
-  * @param string field, newStatus, tableName 
+  * @param string field, newStatus, tableName
   * @return void
-  */  
+  */
   this.updateStatusInStorageById = function(entityIdArray, newStatus, tableName) {
-    
+
     var dateYmd = new Date().toISOString().substring(0, 10);
-    var fullTableName = this.projectId + ':' + this.dataSetId + '.' + tableName;  
+    var fullTableName = this.projectId + ':' + this.dataSetId + '.' + tableName;
     var fullQuery = 'UPDATE `' + fullTableName + '` SET status = "' + newStatus + '", updateDate = "'+ dateYmd + '" WHERE id IN ( "' + entityIdArray.join('","') + '")';
     Logger.log("updateStatusInStorageById : " + fullQuery);
-    
+
     var queryRequest = BigQuery.newQueryRequest();
     queryRequest.useLegacySql = false;
-    queryRequest.query = fullQuery; 
+    queryRequest.query = fullQuery;
     var query = BigQuery.Jobs.query(queryRequest, this.projectId);
-    
+
     if (query.jobComplete) {
-      
+
       Logger.log("updateStatusInStorage complete : " + entityIdArray.length + " ids updated to " + status);
-    } 
-  }  
-    
+    }
+  }
+
 
 } // END STORAGE HANDLER
 
@@ -4617,43 +4617,43 @@ function StorageHandler(){
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // 7. UrlHandler: takes string and urlBuilderConfig object to generate URLs
-// 
+//
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
 function UrlHandler() {
-  
+
   /*
   * @return void
-  * @throws error Missing 
+  * @throws error Missing
   */
-  this.validateUrlSchema = function(){    
-    // see URL_SCHEMA for more cases  
+  this.validateUrlSchema = function(){
+    // see URL_SCHEMA for more cases
     /* Validation Cases
     * 1. urlString not in Feed
     * 2. If urlType ByObject and customUrlMethod not implemented
     * 3. If urlType "Custom_ByFeedString" and urlPrefix doesn't end in slash
     */
    }
-  
+
   /*
   * @param object adGroupObject
   * @return string finalUrl
   * @throws exception InvalidUrlTypeException
   */
-  this.createUrlByConfig = function(adGroupObject) { 
-    
-    var finalUrl; 
-    
+  this.createUrlByConfig = function(adGroupObject) {
+
+    var finalUrl;
+
     try{
         switch(URL_SCHEMA.urlType) {
         case "Default_Search" : finalUrl = this.createSearchUrl(adGroupObject); break;
         case "Custom_ByObject" : finalUrl = this.createUrlByAdGroupObject(adGroupObject); break;
         case "Custom_ByFeedString" : finalUrl = this.createUrlByFeedString(adGroupObject); break;
         default: Logger.log("InvalidUrlTypeException: The value for is not one of the three: Default_Search, Custom_ByObject, Custom_ByFeedString"); break;
-      } 
+      }
       if (URL_SCHEMA.addParameters == "YES") {
        finalUrl += this.parseAndAppendUrlParameters(adGroupObject);
       }
@@ -4662,14 +4662,14 @@ function UrlHandler() {
     if(DEBUG_MODE == 1) {Logger.log("urlHandler finalUrl : " + finalUrl);}
     return finalUrl;
   }
-  
+
   /*
   * @description allows the replacement of three placeholder values {campaign}, {adgroup} and {keyword}
   * @param object adGroupObject
   * @return string urlParamString
   */
   this.parseAndAppendUrlParameters = function(adGroupObject) {
-    
+
     //Declaring necessary variables.
     var urlParamTemplate = URL_SCHEMA.urlParameters;
 
@@ -4690,21 +4690,21 @@ function UrlHandler() {
 
     return urlParamTemplate.replace(/ /g,"_");
   }
-  
+
   /*
   * @param object adGroupObject
   * @return string urlByFeedString
-  * @throws error 
+  * @throws error
   */
   this.createSearchUrl = function(adGroupObject) {
-    
+
     var concatString = adGroupObject.kwWithUnderscore.replace(/ |_/g,"+").replace(/&|-/g,"").replace(/\|\|\|/g,"_");
     var encodedConcatString = URL_SCHEMA.UriEncodeSearchString == "YES" ? encodeURI(concatString) : concatString;
-    var searchUrl = URL_SCHEMA.urlPrefix + encodedConcatString;  
-    
+    var searchUrl = URL_SCHEMA.urlPrefix + encodedConcatString;
+
     return searchUrl;
   }
-  
+
   /*
   * @param object adGroupObject
   * @return string urlByFeedString
@@ -4717,7 +4717,7 @@ function UrlHandler() {
     var urlByFeedString = URL_SCHEMA.urlPrefix + adGroupObject["urlsuffix"]; //.replace(/ |_/g,"+").replace(/&|-/g,"").replace(/\+\+/g,"+").replace(/\|\|\|/g,"_")
     return urlByFeedString;
   }
-  
+
 }
 
 UrlHandler.prototype.evaluateParamSchema = function(adGroupObject) {
@@ -4729,7 +4729,7 @@ UrlHandler.prototype.evaluateParamSchema = function(adGroupObject) {
   //This allows the user to write "keyword" in url template instead of the ugly "kwWithUnderscore".
   adGroupObject.keyword = adGroupObject.kwWithUnderscore;
 
-  //generating list of possible parameter placeholder 
+  //generating list of possible parameter placeholder
   //!!! This array should not be generated every time !!!!!
   for (var prop in adGroupObject) {
     possibleTemplateValuesList.push(prop);
@@ -4757,7 +4757,7 @@ UrlHandler.prototype.evaluateParamSchema = function(adGroupObject) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
 // ADDON 7. UrlHandler: URL Creation by AdGroupObject
-// 
+//
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -4773,18 +4773,18 @@ UrlHandler.prototype.evaluateParamSchema = function(adGroupObject) {
 UrlHandler.prototype.createUrlByAdGroupObject = function(adGroupObject){
   // ABSTRACT METHOD by DEFAULT!
   throw new Error("MissingImplementationError: method urlHandler.createUrlByAdGroupObject is ABSTRACT by default, thus needs a client-specific implementation! ONLY remove if implemented and tested!");
-  
+
   var finalUrl;
   var aggrType = adGroupObject.aggregationType;
-  var adGroupNameSplit = adGroupObject.kwWithUnderscore.split("_");  
-  
+  var adGroupNameSplit = adGroupObject.kwWithUnderscore.split("_");
+
   // Covered cases: BM, BCG, BC, C, CG
   if(aggrType == "BM") {
     finalUrl = URL_SCHEMA.urlPrefix /* TBD */;
-  } else 
+  } else
   if(aggrType == "BCG") {
     finalUrl = URL_SCHEMA.urlPrefix/* TBD */;
-  } else 
+  } else
   if(aggrType == "BC" || aggrType == "BG") {
     finalUrl = URL_SCHEMA.urlPrefix/* TBD */;
   } else
@@ -4794,9 +4794,9 @@ UrlHandler.prototype.createUrlByAdGroupObject = function(adGroupObject){
   if(aggrType == "CG") {
     finalUrl = URL_SCHEMA.urlPrefix /* TBD */;
   }
-  
+
   // Defining ASCII string normalisation for URLs
-  finalUrl = finalUrl.replace(/ /g,"").replace(/ä/g,"ae").replace(/ß/g,"ss").replace(/ü/g,"ue").replace(/ö/g,"oe").toLowerCase();    
-  
+  finalUrl = finalUrl.replace(/ /g,"").replace(/ä/g,"ae").replace(/ß/g,"ss").replace(/ü/g,"ue").replace(/ö/g,"oe").toLowerCase();
+
   return finalUrl;
 }

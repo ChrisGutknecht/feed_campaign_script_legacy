@@ -1769,7 +1769,7 @@ FeedHandler.prototype.getNonSaleAdGroupList = function(adGroupObjects) {
 **/
 FeedHandler.prototype.foundInGoogleSuggest = function(keyword) {
   var foundInSuggest = 0;
-  var xmlRequestUrl = "https://suggestqueries.google.com/complete/search?output=toolbar&hl="+ NEW_CAMPAIGN_CONFIG.useHistoricalQueries.language +"&q=" + keyword;
+  var xmlRequestUrl = "https://suggestqueries.google.com/complete/search?output=toolbar&hl="+ NEW_CAMPAIGN_CONFIG.useQueryData.language +"&q=" + keyword;
   var xmlDocument = XmlService.parse(UrlFetchApp.fetch(xmlRequestUrl).getContentText());
 
   try {

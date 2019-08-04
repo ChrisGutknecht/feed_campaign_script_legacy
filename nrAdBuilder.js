@@ -1794,7 +1794,6 @@ FeedHandler.prototype.checkIfKpiLevelReached = function(keyword) {
 
   var dateYesterday =  new Date().toISOString().substring(0, 10).replace(/-/g, "");
   var dateRange = queryConfig.startingDateRange + "," + dateYesterday;
-  Logger.log(dateRange);
 
   try {
 
@@ -1810,12 +1809,12 @@ FeedHandler.prototype.checkIfKpiLevelReached = function(keyword) {
   try {
     sqReportRows = sqReport.rows();
     sqReportRows.next();
-  } catch (e) { return Logger.log("Empty report");}
+  } catch (e) { return levelReached;}
 
   try {
     if (sqReportRows.hasNext()) {
       var row = sqReportRows.next();
-      Logger.log(JSON.stringify(row));
+      // Logger.log(JSON.stringify(row));
       levelReached = 1;
     }
   } catch (e) { Logger.log(e)}

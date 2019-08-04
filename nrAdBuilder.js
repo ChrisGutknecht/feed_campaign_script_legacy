@@ -1668,7 +1668,11 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   Logger.log("Building adgroup objects. Total input : " + this.feedContent.length);
 
   var prevalidatedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", true);
+  Logger.log("prevalidatedKeywords : " + prevalidatedKeywords + " | Length : " + prevalidatedKeywords.length);
+
   var discardedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", false);
+  Logger.log("discardedKeywords : " + discardedKeywords + " | Length : " + discardedKeywords.length);
+
   var KEYWORD_VALIDATION_LOG = [];
 
   for(var i=1;i<300;i++){ // this.feedContent.length

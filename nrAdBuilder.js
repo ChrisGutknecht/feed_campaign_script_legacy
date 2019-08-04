@@ -1667,7 +1667,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   var adGroupObjects = [];
   Logger.log("Building adgroup objects. Total input : " + this.feedContent.length);
 
-  var prevalidatedKeywords = this.storageHandler.selectAllQuery("prevalidatedKeywords");
+  var prevalidatedKeywords = this.storageHandler.selectAllIds("prevalidatedKeywords");
   Logger.log("prevalidatedKeywords : " + prevalidatedKeywords[0] + " | Length : " + prevalidatedKeywords.length);
 
   var KEYWORD_VALIDATION_LOG = [];
@@ -1717,8 +1717,6 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
     // Push All adgroups in feed to adgroup Objects
     if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 0) adGroupObjects.push(adGroupObject);
-
-    Logger.log("NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries " + NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries);
 
     if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1) {
 
@@ -4651,11 +4649,11 @@ function StorageHandler(){
   * @return {array} results
   * @throws {exception} EmptyResponseException
   */
-  this.selectAllQuery = function(tableName) {
+  this.selectAllIds = function(tableName) {
 
     var queryRequest = BigQuery.newQueryRequest();
     var fullTableName = this.projectId + ':' + this.dataSetId + '.' + tableName;
-    queryRequest.query = 'select * from [' + fullTableName + ']';
+    queryRequest.query = 'select id from [' + fullTableName + ']';
     var query = BigQuery.Jobs.query(queryRequest, this.projectId);
     var results = [];
 
@@ -4665,7 +4663,7 @@ function StorageHandler(){
           var row = query.rows[i];
           var values = [];
           for (var j = 0; j < row.f.length; j++) {
-            values.push(row.f[j].v);
+            values.push(row.f[j].v.toString());
           }
           results.push(values);
         }

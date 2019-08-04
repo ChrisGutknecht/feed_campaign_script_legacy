@@ -1700,20 +1700,20 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     if(adGroupObject.campaign != this.campaignName) continue;
 
     // Push All adgroups in feed to adgroup Objects
-    if(NEW_CAMPAIGN_CONFIG.useQueryData == 0) adGroupObjects.push(adGroupObject);
+    if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 0) adGroupObjects.push(adGroupObject);
 
     // Only push adgroups if query is found in Google Suggest or minKPI condition is satisfied
     var cleandKeyword = adGroupObject.kwWithUnderscore.replace(/_/g," ").toLowerCase();
     var adGroupPushed = 0;
 
     // Case I: Google Suggest
-    if(NEW_CAMPAIGN_CONFIG.useQueryData == 1 && this.foundInGoogleSuggest(cleandKeyword) == 1) {
+    if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1 && this.foundInGoogleSuggest(cleandKeyword) == 1) {
       adGroupObjects.push(adGroupObject);
       adGroupPushed = 1;
     }
 
     // Case II: Check historical queries
-    if(adGroupPushed == 0 && NEW_CAMPAIGN_CONFIG.useQueryData == 1 && this.checkIfKpiLevelReached(cleandKeyword) == 1) {
+    if(adGroupPushed == 0 && NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1 && this.checkIfKpiLevelReached(cleandKeyword) == 1) {
       adGroupObjects.push(adGroupObject);
       adGroupPushed = 1;
     }}

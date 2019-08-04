@@ -1734,7 +1734,6 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       if(prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {
         adGroupObjects.push(adGroupObject);
         adGroupPushed = 1;
-        Logger.log(cleanedKeyword + " found in cache");
       }
 
       // Case II: Found in Google Suggest
@@ -1766,6 +1765,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
   } // END For loop
 
+  Logger.log("New Cache Entries : " + KEYWORD_VALIDATION_LOG);
   this.storageHandler.writeRows(KEYWORD_VALIDATION_LOG, "prevalidatedKeywords");
   Logger.log("validated adGroupObjects : " + adGroupObjects.length + " for campaign " + this.campaignName); Logger.log(" ");
   return adGroupObjects;

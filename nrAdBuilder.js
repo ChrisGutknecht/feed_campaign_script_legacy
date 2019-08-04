@@ -1721,11 +1721,11 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
       // Only push adgroups if query is found in Google Suggest or minKPI condition is satisfied
       var cleanedKeyword = adGroupObject.kwWithUnderscore.replace(/_/g," ").toLowerCase();
+      var adGroupPushed = 0;
 
       // Early skip if keyword already discarded
-      if(discardedKeywords.indexOf(cleanedKeyword) != -1) continue;
+      if(discardedKeywords.indexOf(cleanedKeyword) != -1) adGroupPushed = 1;
 
-      var adGroupPushed = 0;
       var keywordValidationLogObject = {
         "id" : cleanedKeyword,
         "validationStatus" : true,
@@ -1733,7 +1733,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       };
 
       // Case I: Found in validatedKeywords Cache
-      if(prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {
+      if(adGroupPushed = 0 && prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {
         adGroupObjects.push(adGroupObject);
         adGroupPushed = 1;
       }

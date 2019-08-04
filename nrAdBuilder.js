@@ -1737,7 +1737,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       }
 
       // Case II: Found in Google Suggest
-      if(adGroupPushed = 0 && this.foundInGoogleSuggest(cleanedKeyword) == 1) {
+      if(adGroupPushed == 0 && this.foundInGoogleSuggest(cleanedKeyword) == 1) {
         adGroupObjects.push(adGroupObject);
         adGroupPushed = 1;
         keywordValidationLogObject.validationType = "suggest";

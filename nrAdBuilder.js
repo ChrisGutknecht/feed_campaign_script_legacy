@@ -1734,6 +1734,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       if(prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {
         adGroupObjects.push(adGroupObject);
         adGroupPushed = 1;
+        Logger.log(cleanedKeyword + " found in cache");
       }
 
       // Case II: Found in Google Suggest

@@ -108,7 +108,7 @@ function nrCampaignBuilder(feedContent) {
 
   // Prevalidate adgroups and store for lookup in BigQuery
   var keywordValidationStorageHandler = new StorageHandler();
-  var idFieldSchema = BigQuery.newTableFieldSchema(); idFieldSchema.name = 'keyword'; idFieldSchema.type = 'STRING';
+  var idFieldSchema = BigQuery.newTableFieldSchema(); idFieldSchema.name = 'id'; idFieldSchema.type = 'STRING';
   var validationFieldSchema = BigQuery.newTableFieldSchema(); validationFieldSchema.description = 'the result of the query validation'; validationFieldSchema.name = 'validationStatus'; validationFieldSchema.type = 'BOOL';
   var adgroupFieldSchema = BigQuery.newTableFieldSchema(); adgroupFieldSchema.name = 'adGroupName'; adgroupFieldSchema.type = 'STRING';
   var validationTypeFieldSchema = BigQuery.newTableFieldSchema(); validationTypeFieldSchema.description = 'source of the query validation'; validationTypeFieldSchema.name = 'validationType'; validationTypeFieldSchema.type = 'STRING';
@@ -1726,7 +1726,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
       var keywordValidationLogObject = {
         "id" : cleanedKeyword,
-        "validationStatus" : 1,
+        "validationStatus" : true,
         "adGroupName" : adGroupObject.adGroup
       };
 
@@ -4455,7 +4455,7 @@ function StorageHandler(){
   this.projectId = 'feeddataaggregation';
   this.accountName = AdsApp.currentAccount().getName().replace(/[^a-zA-Z0-9 ]/g, "").replace(/ /g,"");
   this.accountId = AdsApp.currentAccount().getCustomerId().replace(/[^a-zA-Z0-9 ]/g, "");
-  this.dataSetId = this.accountName + "_" + this.accountId + "_" + "nrFeedCampaign_EntityLog";
+  this.dataSetId = this.accountId + "_" + "nrFeedCampaign_EntityLog";
 
   /* Compound method to initialize database
   * @param {string} tableName

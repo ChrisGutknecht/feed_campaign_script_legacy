@@ -1668,7 +1668,6 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   Logger.log("Building adgroup objects. Total input : " + this.feedContent.length);
 
   var prevalidatedKeywords = this.storageHandler.selectAllIds("prevalidatedKeywords");
-  Logger.log(prevalidatedKeywords);
   Logger.log("prevalidatedKeywords : " + prevalidatedKeywords + " | Length : " + prevalidatedKeywords.length);
 
   var KEYWORD_VALIDATION_LOG = [];
@@ -1730,8 +1729,6 @@ FeedHandler.prototype.getAdGroupObjects = function() {
         "validationStatus" : true,
         "adGroupName" : adGroupObject.adGroup
       };
-
-      Logger.log("cleanedKeyword : " +  cleanedKeyword + " found in Cache : " + prevalidatedKeywords.indexOf(cleanedKeyword));
 
       // Case I: Found in validatedKeywords Cache
       if(prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {

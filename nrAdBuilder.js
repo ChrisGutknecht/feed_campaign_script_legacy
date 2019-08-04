@@ -1667,7 +1667,8 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   var adGroupObjects = [];
   Logger.log("Building adgroup objects. Total input : " + this.feedContent.length);
 
-  var prevalidatedKeywords = this.storageHandler.selectAllIds("prevalidatedKeywords");
+  var prevalidatedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", true);
+  var discardedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", true);
   var KEYWORD_VALIDATION_LOG = [];
 
   for(var i=1;i<300;i++){ // this.feedContent.length
@@ -1720,8 +1721,11 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
       // Only push adgroups if query is found in Google Suggest or minKPI condition is satisfied
       var cleanedKeyword = adGroupObject.kwWithUnderscore.replace(/_/g," ").toLowerCase();
-      var adGroupPushed = 0;
 
+      // Early skip if keyword already discarded
+      if(discardedKeywords.indexOf(cleanedKeyword) != -1) continue;
+
+      var adGroupPushed = 0;
       var keywordValidationLogObject = {
         "id" : cleanedKeyword,
         "validationStatus" : true,
@@ -4655,11 +4659,11 @@ function StorageHandler(){
   * @return {array} results
   * @throws {exception} EmptyResponseException
   */
-  this.selectAllIds = function(tableName) {
+  this.selectKeywordsByStatus = function(tableName, type) {
 
     var queryRequest = BigQuery.newQueryRequest();
     var fullTableName = this.projectId + ':' + this.dataSetId + '.' + tableName;
-    queryRequest.query = 'select id from [' + fullTableName + ']';
+    queryRequest.query = 'select id from [' + fullTableName + '] WHERE validationStatus = ' + type + ' ';
     var query = BigQuery.Jobs.query(queryRequest, this.projectId);
     var results = [];
 

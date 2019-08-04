@@ -1738,18 +1738,28 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       }
 
       // Case II: Found in Google Suggest
-      if(adGroupPushed == 0 && this.foundInGoogleSuggest(cleanedKeyword) == 1) {
-        adGroupObjects.push(adGroupObject);
-        adGroupPushed = 1;
-        keywordValidationLogObject.validationType = "suggest";
-        KEYWORD_VALIDATION_LOG.push(keywordValidationLogObject);
+      if(adGroupPushed == 0) {
+        if (this.foundInGoogleSuggest(cleanedKeyword) == 1) {
+          adGroupObjects.push(adGroupObject);
+          adGroupPushed = 1;
+
+          keywordValidationLogObject.validationType = "suggest";
+          KEYWORD_VALIDATION_LOG.push(keywordValidationLogObject);
+        }
       }
 
       // Case III: Check historical account queries
-      if(adGroupPushed == 0 && NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1 && this.checkIfKpiLevelReached(cleanedKeyword) == 1) {
-        adGroupObjects.push(adGroupObject);
-        keywordValidationLogObject.validationType = "accountQueries";
-        KEYWORD_VALIDATION_LOG.push(keywordValidationLogObject);
+      if(adGroupPushed == 0) {
+        if(this.checkIfKpiLevelReached(cleanedKeyword) == 0) {
+          keywordValidationLogObject.validationStatus = false;
+          keywordValidationLogObject.validationType = "none";
+          KEYWORD_VALIDATION_LOG.push(keywordValidationLogObject);
+        }
+        if(this.checkIfKpiLevelReached(cleanedKeyword) == 1) {
+          adGroupObjects.push(adGroupObject);
+          keywordValidationLogObject.validationType = "accountQueries";
+          KEYWORD_VALIDATION_LOG.push(keywordValidationLogObject);
+        }
       }
     }
     if(i % 100 == 0) Logger.log(i + " adgroups done . " + adGroupObjects.length + " validated");

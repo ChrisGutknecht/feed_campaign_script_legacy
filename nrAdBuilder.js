@@ -1718,6 +1718,8 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     // Push All adgroups in feed to adgroup Objects
     if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 0) adGroupObjects.push(adGroupObject);
 
+    Logger.log("NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries " + NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries);
+    
     if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1) {
 
       // Only push adgroups if query is found in Google Suggest or minKPI condition is satisfied
@@ -1729,6 +1731,8 @@ FeedHandler.prototype.getAdGroupObjects = function() {
         "validationStatus" : true,
         "adGroupName" : adGroupObject.adGroup
       };
+
+      Logger("cleanedKeyword ": cleanedKeyword + " found in Cache : " + prevalidatedKeywords.indexOf(cleanedKeyword));
 
       // Case I: Found in validatedKeywords Cache
       if(prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {

@@ -4664,14 +4664,12 @@ function StorageHandler(){
           var row = query.rows[i];
           var values = [];
           for (var j = 0; j < row.f.length; j++) {
-            values.push(row.f[j].v.toString());
+            results.push(row.f[j].v.toString());
           }
-          results.push(values);
         }
       } catch(e){ Logger.log("EmptyResponseException : No results were returned."); Logger.log("Specific error : " + e); Logger.log(" ");}
     }
 
-    Logger.log(results);
     return results;
   }
 

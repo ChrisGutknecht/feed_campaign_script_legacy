@@ -1668,7 +1668,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   Logger.log("Building adgroup objects. Total input : " + this.feedContent.length);
 
   var prevalidatedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", true);
-  Logger.log("prevalidatedKeywords (Length : " + prevalidatedKeywords.length ") : " + prevalidatedKeywords);
+  Logger.log("prevalidatedKeywords (Length : " + prevalidatedKeywords.length + ") : " + prevalidatedKeywords);
 
   var discardedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", false);
   Logger.log("discardedKeywords ( Length : " + discardedKeywords.length + ") : " + discardedKeywords);
@@ -1728,7 +1728,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       var adGroupPushed = 0;
 
       // Early skip if keyword already discarded
-      if(discardedKeywords.indexOf(cleanedKeyword) != -1) adGroupPushed = 1;
+      if(discardedKeywords.indexOf(cleanedKeyword) != -1) continue;
 
       var keywordValidationLogObject = {
         "id" : cleanedKeyword,
@@ -1737,7 +1737,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       };
 
       // Case I: Found in validatedKeywords Cache
-      if(adGroupPushed = 0 && prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {
+      if(prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {
         adGroupObjects.push(adGroupObject);
         adGroupPushed = 1;
       }

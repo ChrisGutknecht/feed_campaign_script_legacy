@@ -1719,7 +1719,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     }}
 
   }
-  Logger.log("validated adGroupObjects : " + adGroupObjects.length + " for campaign " + this.campaignName); Logger.log(" ");}
+  Logger.log("validated adGroupObjects : " + adGroupObjects.length + " for campaign " + this.campaignName); Logger.log(" ");
   return adGroupObjects;
 };
 

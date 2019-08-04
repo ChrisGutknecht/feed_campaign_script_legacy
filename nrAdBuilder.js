@@ -1668,6 +1668,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   Logger.log("Building adgroup objects. Total input : " + this.feedContent.length);
 
   var prevalidatedKeywords = this.storageHandler.selectAllIds("prevalidatedKeywords");
+  Logger.log(prevalidatedKeywords);
   Logger.log("prevalidatedKeywords : " + prevalidatedKeywords + " | Length : " + prevalidatedKeywords.length);
 
   var KEYWORD_VALIDATION_LOG = [];
@@ -4670,6 +4671,7 @@ function StorageHandler(){
       } catch(e){ Logger.log("EmptyResponseException : No results were returned."); Logger.log("Specific error : " + e); Logger.log(" ");}
     }
 
+    Logger.log(results);
     return results;
   }
 

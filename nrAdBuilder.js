@@ -1676,7 +1676,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   Logger.log("discardedKeywords ( Length : " + discardedKeywords.length + ") : " + discardedKeywords);
 
   var KEYWORD_VALIDATION_LOG = [];
-  var maxLimit = (this.feedContent.length - prevalidatedKeywords.length - discardedKeywords.length) > 500 ? 500 : (prevalidatedKeywords.length + discardedKeywords.lengthmaxLimit + 500);
+  var maxLimit = (this.feedContent.length - prevalidatedKeywords.length - discardedKeywords.length) > 500 ? (prevalidatedKeywords.length + discardedKeywords.lengthmaxLimit + 500) : this.feedContent.length;
   Logger.log("maxLimit : " + maxLimit);
 
   for(var i=1;i<maxLimit;i++){ //

@@ -1670,13 +1670,13 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   Logger.log("Building adgroup objects. Total input : " + this.feedContent.length);
 
   var prevalidatedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", true);
-  Logger.log("prevalidatedKeywords (Length : " + prevalidatedKeywords.length + ") : " + prevalidatedKeywords);
+  Logger.log("prevalidatedKeywords (Length : " + prevalidatedKeywords.length + ") : " + prevalidatedKeywords[0]);
 
   var discardedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", false);
-  Logger.log("discardedKeywords ( Length : " + discardedKeywords.length + ") : " + discardedKeywords);
+  Logger.log("discardedKeywords (Length : " + discardedKeywords.length + ") : " + discardedKeywords[0]);
 
   var KEYWORD_VALIDATION_LOG = [];
-  var maxLimit = (this.feedContent.length - prevalidatedKeywords.length - discardedKeywords.length) > 500 ? (prevalidatedKeywords.length + discardedKeywords.lengthmaxLimit + 500) : this.feedContent.length;
+  var maxLimit = (this.feedContent.length - prevalidatedKeywords.length - discardedKeywords.length) > 500 ? (prevalidatedKeywords.length + discardedKeywords.length + 500) : this.feedContent.length;
   Logger.log("maxLimit : " + maxLimit);
 
   for(var i=1;i<maxLimit;i++){ //

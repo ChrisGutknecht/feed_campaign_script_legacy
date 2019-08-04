@@ -105,6 +105,16 @@ function nrCampaignBuilder(feedContent) {
 
   var adgroupStorageHandler = new StorageHandler();
   adgroupStorageHandler.initDb("adGroups", adgroupStorageHandler.generateFieldSchemaArray());
+
+  // Prevalidate adgroups and store for lookup in BigQuery
+  var keywordValidationStorageHandler = new StorageHandler();
+  var idFieldSchema = BigQuery.newTableFieldSchema(); idFieldSchema.name = 'keyword'; idFieldSchema.type = 'STRING';
+  var validationFieldSchema = BigQuery.newTableFieldSchema(); validationFieldSchema.description = 'the result of the query validation'; validationFieldSchema.name = 'validationStatus'; validationFieldSchema.type = 'BOOL';
+  var adgroupFieldSchema = BigQuery.newTableFieldSchema(); adgroupFieldSchema.name = 'adGroupName'; adgroupFieldSchema.type = 'STRING';
+  var validationTypeFieldSchema = BigQuery.newTableFieldSchema(); validationTypeFieldSchema.description = 'source of the query validation'; validationTypeFieldSchema.name = 'validationType'; validationTypeFieldSchema.type = 'STRING';
+
+  keywordValidationStorageHandler.initDb("prevalidatedKeywords", [idFieldSchema, validationFieldSchema, adgroupFieldSchema, validationTypeFieldSchema]);
+
   var sitelinkStorageHandler = new StorageHandler();
   sitelinkStorageHandler.initDb("adGroup_sitelinks", sitelinkStorageHandler.generateFieldSchemaArray());
 
@@ -142,7 +152,7 @@ function nrCampaignBuilder(feedContent) {
     var adGroupHandler = new AdGroupHandler(campaignName);
 
     // 1.2 Get feed data per campaign
-    var feedHandler = new FeedHandler(FEED_URL, COLUMN_SEPARATOR, columnMapper, campaignName, feedContent);
+    var feedHandler = new FeedHandler(FEED_URL, COLUMN_SEPARATOR, columnMapper, campaignName, feedContent. keywordValidationStorageHandler);
 
     fullAdGroupObjects = feedHandler.getAdGroupObjects();
     var shouldBeActiveAdGroups = new AdGroupList(feedHandler.getAdGroupList(fullAdGroupObjects));
@@ -1640,11 +1650,12 @@ FeedColumnValidator.prototype.getColumnMapper = function() {
 
 
 
-function FeedHandler(feedurl, columnSeparator, columnMapper, campaignName, feedContent) {
+function FeedHandler(feedurl, columnSeparator, columnMapper, campaignName, feedContent, storageHandler) {
   this.feedColSeparator = columnSeparator;
   this.feedContent = feedContent;
   this.columnMapper = columnMapper;
   this.campaignName = campaignName;
+  this.storageHandler = storageHandler;
 }
 
 
@@ -1656,7 +1667,12 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   var adGroupObjects = [];
   Logger.log("Building adgroup objects. Total input : " + this.feedContent.length);
 
-  for(var i=1;i<this.feedContent.length;i++){
+  var prevalidatedKeywords = this.storageHandler.selectAllQuery("prevalidatedKeywords");
+  Logger.log("prevalidatedKeywords : " + prevalidatedKeywords);
+
+  var KEYWORD_VALIDATION_LOG = [];
+
+  for(var i=1;i<200;i++){ // this.feedContent.length
     var listItem = this.feedContent[i];
 
     // Check AdGroup Names or extra space at beginning
@@ -1702,25 +1718,44 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     // Push All adgroups in feed to adgroup Objects
     if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 0) adGroupObjects.push(adGroupObject);
 
-    // Only push adgroups if query is found in Google Suggest or minKPI condition is satisfied
-    var cleandKeyword = adGroupObject.kwWithUnderscore.replace(/_/g," ").toLowerCase();
-    var adGroupPushed = 0;
+    if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1) {
 
-    // Case I: Google Suggest
-    if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1 && this.foundInGoogleSuggest(cleandKeyword) == 1) {
-      adGroupObjects.push(adGroupObject);
-      adGroupPushed = 1;
-    }
+      // Only push adgroups if query is found in Google Suggest or minKPI condition is satisfied
+      var cleanedKeyword = adGroupObject.kwWithUnderscore.replace(/_/g," ").toLowerCase();
+      var adGroupPushed = 0;
 
-    // Case II: Check historical queries
-    if(adGroupPushed == 0 && NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1 && this.checkIfKpiLevelReached(cleandKeyword) == 1) {
-      adGroupObjects.push(adGroupObject);
-      adGroupPushed = 1;
+      var keywordValidationLogObject = {
+        "id" : cleanedKeyword,
+        "validationStatus" : 1,
+        "adGroupName" : adGroupObject.adGroup
+      };
+
+      // Case I: Found in validatedKeywords Cache
+      if(prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {
+        adGroupObjects.push(adGroupObject);
+        adGroupPushed = 1;
+      }
+
+      // Case II: Found in Google Suggest
+      if(adGroupPushed = 0 && this.foundInGoogleSuggest(cleanedKeyword) == 1) {
+        adGroupObjects.push(adGroupObject);
+        adGroupPushed = 1;
+        keywordValidationLogObject.validationType = "suggest";
+        KEYWORD_VALIDATION_LOG.push(keywordValidationLogObject);
+      }
+
+      // Case III: Check historical account queries
+      if(adGroupPushed == 0 && NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1 && this.checkIfKpiLevelReached(cleanedKeyword) == 1) {
+        adGroupObjects.push(adGroupObject);
+        keywordValidationLogObject.validationType = "accountQueries";
+        KEYWORD_VALIDATION_LOG.push(keywordValidationLogObject);
+      }
     }
     if(i % 100 == 0) Logger.log(i + " adgroups done . " + adGroupObjects.length + " validated");
 
   } // END For loop
 
+  this.storageHandler.writeRows(KEYWORD_VALIDATION_LOG, "prevalidatedKeywords");
   Logger.log("validated adGroupObjects : " + adGroupObjects.length + " for campaign " + this.campaignName); Logger.log(" ");
   return adGroupObjects;
 };
@@ -1917,7 +1952,7 @@ AdGroupHandler.prototype.create = function(adGroupList, defaultBid, storageHandl
   }
 
   if (adGroupList.length > 0 && ADGROUP_CREATION_LOG.length > 0 && SCRIPT_RUN_SCOPE.productionMode_writeToDB == "YES") {
-    storageHandler.writeRowstoStorage(ADGROUP_CREATION_LOG, "adGroups");
+    storageHandler.writeRows(ADGROUP_CREATION_LOG, "adGroups");
   }
   ADGROUP_CREATION_LOG = [];
 };
@@ -3670,7 +3705,7 @@ function SitelinkHandler(campaignName) {
     } // END FOR LOOP Adgroup objects
 
     if(SITELINK_CREATION_LOG.length > 0 && SCRIPT_RUN_SCOPE.productionMode_writeToDB === "YES") {
-      storageHandler.writeRowstoStorage(SITELINK_CREATION_LOG, "adGroup_sitelinks");
+      storageHandler.writeRows(SITELINK_CREATION_LOG, "adGroup_sitelinks");
     }
     SITELINK_CREATION_LOG = []; // Empty sitelink creation log.
   };
@@ -4571,7 +4606,7 @@ function StorageHandler(){
   * @return void
   * @throws exception EmptyRowRequest_Exception
   */
-  this.writeRowstoStorage = function(createdEntitiesLog, tableName) {
+  this.writeRows = function(createdEntitiesLog, tableName) {
 
     var insertAllRequest = BigQuery.newTableDataInsertAllRequest();
     insertAllRequest.rows = [];
@@ -4605,6 +4640,35 @@ function StorageHandler(){
   }
 
 
+  /*
+  * @param {string} tableName
+  * @param {string} status
+  * @return {array} results
+  * @throws {exception} EmptyResponseException
+  */
+  this.selectAllQuery = function(tableName) {
+
+    var queryRequest = BigQuery.newQueryRequest();
+    var fullTableName = this.projectId + ':' + this.dataSetId + '.' + tableName;
+    queryRequest.query = 'select * from [' + fullTableName + ']';
+    var query = BigQuery.Jobs.query(queryRequest, this.projectId);
+    var results = [];
+
+    if (query.jobComplete) {
+      try{
+        for (var i = 0; i < query.rows.length; i++) {
+          var row = query.rows[i];
+          var values = [];
+          for (var j = 0; j < row.f.length; j++) {
+            values.push(row.f[j].v);
+          }
+          results.push(values);
+        }
+      } catch(e){ Logger.log("EmptyResponseException : No results were returned."); Logger.log("Specific error : " + e); Logger.log(" ");}
+    }
+
+    return results;
+  }
 
   /*
   * @param {array} whereClauseArray

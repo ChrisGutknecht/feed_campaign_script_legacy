@@ -1773,6 +1773,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     }
     if(i % 100 == 0) Logger.log(i + " adgroups done . " + adGroupObjects.length + " validated");
 
+    var minutesRemaining = AdsApp.getExecutionInfo().getRemainingTime()/60;
     if (minutesRemaining < 5) {Logger.log("Execution time past twentyfive minutes. Stopping execution..."); break;}
 
   } // END For loop

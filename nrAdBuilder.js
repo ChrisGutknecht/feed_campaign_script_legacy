@@ -1773,6 +1773,8 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     }
     if(i % 100 == 0) Logger.log(i + " adgroups done . " + adGroupObjects.length + " validated");
 
+    if (minutesRemaining < 5) {Logger.log("Execution time past twentyfive minutes. Stopping execution..."); break;}
+
   } // END For loop
 
   // Logger.log("New Cache Entries : " + JSON.stringify(KEYWORD_VALIDATION_LOG));

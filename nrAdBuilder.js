@@ -462,7 +462,7 @@ function ErrorLogger(scriptName) {
 
     htmlBody += '<br>---<br> For further error details, check the error log, tab "(errors)": <br>';
     htmlBody += 'https://docs.google.com/spreadsheets/d/' + spreadsheetId  + '/';
-    htmlBody += '<br><br>Happy optimizing!<br>Sincerely, the norisk team<br>';
+    htmlBody += '<br><br>Happy optimizing!<br>Sincerely, the Bergzeit team<br>';
 
     var options = { htmlBody : htmlBody };
 

@@ -2646,7 +2646,7 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
 				var uploadRow = {
 					"Campaign": this.campaignName,
 					"Ad Group" : this.adGroupObjects[i].adGroup.replace('"','\"'),
-          "Ad type" : 'expanded text ad',
+          "Ad type" : "expanded text ad",
 					"Labels" : label,
 					"Headline 1" : headline,
 					"Headline 2" : headline2,
@@ -2727,6 +2727,7 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
 								uploadRow = {
 									"Campaign": this.campaignName,
 									"Ad Group" : this.adGroupObjects[i].adGroup.replace('"','\"'),
+                  "Ad type" : "expanded text ad",
 									"Labels" : label,
 									"Headline 1" : headline,
 									"Headline 2" : headline2,

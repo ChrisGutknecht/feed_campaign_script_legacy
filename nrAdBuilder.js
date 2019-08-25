@@ -2574,7 +2574,7 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
   if(DEBUG_MODE == 1) {Logger.log("adTemplateObj : "); Logger.log(this.adTemplateObj); Logger.log(" ");}
 
   // Instantiate fallback option via bulk upload for policy errors
-  var columns = ["Campaign","Ad Group","Labels","Headline 1", "Headline 2", "Headline 3","Description Line 1", "Description Line 2", "Path 1", "Path 2", "Final URL"];
+  var columns = ["Campaign","Ad Group","Ad type", "Labels","Headline 1", "Headline 2", "Headline 3","Description Line 1", "Description Line 2", "Path 1", "Path 2", "Final URL"];
   this.upload = AdsApp.bulkUploads().newCsvUpload(columns);
   this.adUploadRows = 0;
 
@@ -2646,6 +2646,7 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
 				var uploadRow = {
 					"Campaign": this.campaignName,
 					"Ad Group" : this.adGroupObjects[i].adGroup.replace('"','\"'),
+          "Ad type" : 'expanded text ad',
 					"Labels" : label,
 					"Headline 1" : headline,
 					"Headline 2" : headline2,

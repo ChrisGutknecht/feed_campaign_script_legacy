@@ -519,7 +519,7 @@ function ErrorLogger(scriptName) {
 
         htmlBody += '<br>- Summary of <b> Errors (!)</b>:' + JSON.stringify(errorsOfDay) + '<br>';
         htmlBody += '<br>---<br> For further error details, check the error log, tab "(errors)": <br>';
-        htmlBody += 'https://docs.google.com/spreadsheets/d/' + spreadsheetId  + '/';
+        htmlBody += 'https://docs.google.com/spreadsheets/d/' + AD_SPREADSHEET_ID  + '/';
         htmlBody += '<br><br>Happy optimizing!<br>Sincerely, the norisk team<br>';
 
         var options = { htmlBody : htmlBody };

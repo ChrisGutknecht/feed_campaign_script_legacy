@@ -2574,7 +2574,7 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
   if(DEBUG_MODE == 1) {Logger.log("adTemplateObj : "); Logger.log(this.adTemplateObj); Logger.log(" ");}
 
   // Instantiate fallback option via bulk upload for policy errors
-  var columns = ["Campaign","Ad Group","Ad type", "Labels","Headline 1", "Headline 2", "Headline 3","Description Line 1", "Description Line 2", "Path 1", "Path 2", "Final URL"];
+  var columns = ["Campaign","Ad Group","Ad type", "Labels","Headline 1", "Headline 2", "Headline 3","Description 1", "Description 2", "Path 1", "Path 2", "Final URL"];
   this.upload = AdsApp.bulkUploads().newCsvUpload(columns);
   this.adUploadRows = 0;
 
@@ -2651,8 +2651,8 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
 					"Headline 1" : headline,
 					"Headline 2" : headline2,
 					"Headline 3" : headline3,
-					"Description Line 1" : description,
-					"Description Line 2" : description2,
+					"Description 1" : description,
+					"Description 2" : description2,
 					"Path 1" : pathArray[0],
 					"Path 2" : pathArray[1],
 					"Final URL" : finalUrl
@@ -2732,8 +2732,8 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
 									"Headline 1" : headline,
 									"Headline 2" : headline2,
 									"Headline 3" : headline3,
-									"Description Line 1" : description,
-									"Description Line 2" : description2,
+									"Description 1" : description,
+									"Description 2" : description2,
 									"Path 1" : pathArray[0],
 									"Path 2" : pathArray[1],
 									"Final URL" : finalUrl
@@ -2829,7 +2829,7 @@ AdHandler.prototype.getLabel = function(name) {
 AdHandler.prototype.appendUploadRow = function(uploadRow) {
 
 	if (typeof AD_HEADLINE_3 !== "undefined") uploadRow["Headline 3"] = AD_HEADLINE_3;
-	if (typeof AD_DESCRIPTION_LINE_2 !== "undefined") uploadRow["Description Line 2"] = AD_DESCRIPTION_LINE_2;
+	if (typeof AD_DESCRIPTION_LINE_2 !== "undefined") uploadRow["Description 2"] = AD_DESCRIPTION_LINE_2;
 
 	this.upload.append(uploadRow);
 	this.adUploadRows++;

@@ -2100,7 +2100,7 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
     .withCondition('CampaignStatus != REMOVED')
     .withCondition("Impressions = 0")
     .withCondition("Status = ENABLED")
-    .withCondition("LabelNames CONTAINS_NONE ['" + kwPolicyErrorLabel + "','" +  standardKwLabel "']")
+    .withCondition("LabelNames CONTAINS_NONE ['" + kwPolicyErrorLabel + "','" +  standardKwLabel + "']")
     .withCondition("LabelNames CONTAINS_ANY ['" + activeLabel +  "','" + pausedLabel +  "']")
     .forDateRange("LAST_MONTH")
     .get();
@@ -2112,7 +2112,7 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
     .withCondition('CampaignStatus != REMOVED')
     .withCondition("Impressions = 0")
     .withCondition("Status = ENABLED")
-    .withCondition("LabelNames CONTAINS_NONE ['" + kwPolicyErrorLabel + "','" +  standardNegativeLabel "']")
+    .withCondition("LabelNames CONTAINS_NONE ['" + kwPolicyErrorLabel + "','" +  standardNegativeLabel + "']")
     .withCondition("LabelNames CONTAINS_ANY ['" + activeLabel +  "','" + pausedLabel +  "']")
     .forDateRange("LAST_MONTH")
     .get();

@@ -2091,6 +2091,8 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
 
   var activeLabel = typeof ADGROUP_STATUS_LABELS != "undefined" ? ADGROUP_STATUS_LABELS["ENABLED"] : "Activated_by_nrFeedCamps";
   var pausedLabel = typeof ADGROUP_STATUS_LABELS != "undefined" ? ADGROUP_STATUS_LABELS["PAUSED"] : "Paused_by_nrFeedCamps";
+  var standardKwLabel = "hasKeywords";
+  var standardNegativeLabel = "hasKeywords";
 
   // Case "keywords"
   if(entityCase === "keywords"){
@@ -2098,14 +2100,26 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
     .withCondition('CampaignStatus != REMOVED')
     .withCondition("Impressions = 0")
     .withCondition("Status = ENABLED")
-    .withCondition("LabelNames CONTAINS_NONE ['" + kwPolicyErrorLabel + "']")
+    .withCondition("LabelNames CONTAINS_NONE ['" + kwPolicyErrorLabel + "','" +  standardKwLabel "']")
+    .withCondition("LabelNames CONTAINS_ANY ['" + activeLabel +  "','" + pausedLabel +  "']")
+    .forDateRange("LAST_MONTH")
+    .get();
+  }
+
+  // Case "negatives"
+  if(entityCase === "negatives"){
+    adGroupIterator = AdsApp.adGroups().withCondition('CampaignName = "' + this.campaignName + '"')
+    .withCondition('CampaignStatus != REMOVED')
+    .withCondition("Impressions = 0")
+    .withCondition("Status = ENABLED")
+    .withCondition("LabelNames CONTAINS_NONE ['" + kwPolicyErrorLabel + "','" +  standardNegativeLabel "']")
     .withCondition("LabelNames CONTAINS_ANY ['" + activeLabel +  "','" + pausedLabel +  "']")
     .forDateRange("LAST_MONTH")
     .get();
   }
 
 
-  // Case Negatives & Ads
+  // Case Ads
   else {
     adGroupIterator = AdsApp.adGroups().withCondition('CampaignName = "' + this.campaignName + '"')
     .withCondition('CampaignStatus != REMOVED')
@@ -2996,20 +3010,11 @@ KeywordHandler.prototype.addKwsWithRelativeBids = function(newKeywordConfig, url
 
         var exactKeywordResult = exactKeywordOp.isSuccessful() ? exactKeywordOp.isSuccessful() : exactKeywordOp.getErrors();
 
-        // var reverseExactKw = '[' + this.adGroupObjects[i].kwWithUnderscore.split("_").reverse().join(" ") + ']';
-        /* reverseExactKeywordOp = newKeywordConfig.SET_KEYWORD_URLS == "YES" ?
-          keywordBuilder.withText(reverseExactKw).withCpc(targetBid).withFinalUrl(finalUrl).build() :
-        keywordBuilder.withText(reverseExactKw).withCpc(targetBid).build();
-        var exactKeywordReverseResult = reverseExactKeywordOp.isSuccessful() ? reverseExactKeywordOp.isSuccessful() : reverseExactKeywordOp.getErrors(); */
-
         // Checking for and labeling duplicate keywords
         var exactKwObject = exactKeywordOp.getResult();
         sameMt_duplFound = this.markDuplicateKeywords(exactKw, adGroup.getName());
         if(sameMt_duplFound === 1) exactKwObject.applyLabel(this.getLabel(DUPLICATE_KW_LABELS.sameMatchtype_new));
 
-        /* var revExactKwObject = reverseExactKeywordOp.getResult();
-        sameMt_duplFound = this.markDuplicateKeywords(reverseExactKw, adGroup.getName());
-        if(sameMt_duplFound === 1) revExactKwObject.applyLabel(this.getLabel(DUPLICATE_KW_LABELS.sameMatchtype_new)); */
       }
 
 
@@ -3042,13 +3047,23 @@ KeywordHandler.prototype.addKwsWithRelativeBids = function(newKeywordConfig, url
         exactErrorRow = [TIME_STAMP, "Kw" , "Disapproved", exactKeywordOp.getErrors(), this.campaignName, this.adGroupObjects[i].adGroup ,"", targetBid,"","","","","","","","","","","","","","",""];
         ERROR_LOG.push(exactErrorRow);
 
-        if(exactKeywordOp.getErrors().toString().indexOf("POLICY") != -1) adGroup.applyLabel(POLICY_ERROR_LABELS.keyword);
+        if(exactKeywordOp.getErrors().toString().indexOf("POLICY") != -1) {
+          adGroup.applyLabel(POLICY_ERROR_LABELS.keyword);
+        } else {
+          var standardLabel = this.getLabel("hasKeywords");
+          adGroup.applyLabel(standardLabel);
+        }
       }
       if(nonExactKeywordOp && nonExactKeywordOp.getErrors().length > 0) {
         nonExactErrorRow = [TIME_STAMP, "Kw" , "Disapproved", nonExactKeywordOp.getErrors(), this.campaignName, this.adGroupObjects[i].adGroup ,"", nonExactBid,"","","","","","","","","","","","","","",""];
         ERROR_LOG.push(nonExactErrorRow);
 
-        if(nonExactKeywordOp.getErrors().toString().indexOf("POLICY") != -1) adGroup.applyLabel(POLICY_ERROR_LABELS.keyword);
+        if(nonExactKeywordOp.getErrors().toString().indexOf("POLICY") != -1) {
+          adGroup.applyLabel(POLICY_ERROR_LABELS.keyword);
+        } else {
+          var standardLabel = this.getLabel("hasKeywords");
+          adGroup.applyLabel(standardLabel);
+        }
       }
       if(DEBUG_MODE == 1) Logger.log("Keywords created for " + this.adGroupObjects[i].adGroup + " in matchtypes exact, exactReverse, nonExact: " + exactKeywordResult + ", " + exactKeywordReverseResult + ", " + nonExactKeywordResult);
 
@@ -3062,6 +3077,7 @@ KeywordHandler.prototype.addKwsWithRelativeBids = function(newKeywordConfig, url
     if(INPUT_SOURCE_MODE === "SQA"){
     	this._sqaSetMatchAccuracyLabel(adGroup, this.adGroupObjects[i]);
     }
+
   } // END FOR Loop adgroups
 };
 
@@ -3500,6 +3516,9 @@ NegativeKeywordHandler.prototype._addNegativeKeywords = function(adGroupObject) 
     .withCondition('Name = \"' + adGroupObject.adGroup + '\"')
     .get().next();
 
+
+  var standardLabel = provideLabel("hasNegatives");
+
   if (adGroupObject.negativeKeywords) {
     if(DEBUG_MODE == 1) {Logger.log("Adding %s negative keyword(s) to adgroup %s", adGroupObject.negativeKeywords.length, adGroupObject.adGroup);}
     for (var i = 0; i < adGroupObject.negativeKeywords.length; i++) {
@@ -3516,6 +3535,7 @@ NegativeKeywordHandler.prototype._addNegativeKeywords = function(adGroupObject) 
     // NO error logging due to missing operation object in API
     var negativeKwOperation = adsApp_adGroup.createNegativeKeyword(exactKw);
     var negativeReverseKwOp = adsApp_adGroup.createNegativeKeyword(reverseExactKw);
+    adsApp_adGroup.applyLabel(standardLabel);
   }
 };
 
@@ -3573,6 +3593,19 @@ NegativeKeywordHandler.prototype.addNegativeKeywordToQuerySource = function() {
       }
     }
   } // END FOR loop adGroupObjects
+};
+
+
+/*
+* @param {string} labelName
+* @return {void}
+*/
+NegativeKeywordHandler.prototype.provideLabel = function (labelName){
+
+  try {
+    var labelSelector = AdsApp.labels().withCondition("Name = '" + labelName + "'").get();
+    if (labelSelector.totalNumEntities() === 0) AdsApp.createLabel(labelName);
+  } catch (e) { Logger.log("LabelOperationException: " + e); Logger.log(" ");}
 };
 
 

@@ -3517,7 +3517,7 @@ NegativeKeywordHandler.prototype._addNegativeKeywords = function(adGroupObject) 
     .get().next();
 
 
-  var standardLabel = provideLabel("hasNegatives");
+  var standardLabel = this.provideLabel("hasNegatives");
 
   if (adGroupObject.negativeKeywords) {
     if(DEBUG_MODE == 1) {Logger.log("Adding %s negative keyword(s) to adgroup %s", adGroupObject.negativeKeywords.length, adGroupObject.adGroup);}

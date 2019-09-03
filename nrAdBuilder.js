@@ -2091,8 +2091,8 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
 
   var activeLabel = typeof ADGROUP_STATUS_LABELS != "undefined" ? ADGROUP_STATUS_LABELS["ENABLED"] : "Activated_by_nrFeedCamps";
   var pausedLabel = typeof ADGROUP_STATUS_LABELS != "undefined" ? ADGROUP_STATUS_LABELS["PAUSED"] : "Paused_by_nrFeedCamps";
-  var standardKwLabel = "hasKeywords";
-  var standardNegativeLabel = "hasKeywords";
+  var standardKwLabel = this.getLabel("hasKeywords");
+  var standardNegativeLabel =  this.getLabel("hasNegatives");
 
   // Case "keywords"
   if(entityCase === "keywords"){

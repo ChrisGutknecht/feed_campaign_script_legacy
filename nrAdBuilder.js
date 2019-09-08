@@ -104,7 +104,7 @@ function nrCampaignBuilder(feedContent) {
   campaignSettingService.updateCampaigns();
 
   var adgroupStorageHandler = new StorageHandler();
-  adgroupStorageHandler.initDb("adGroups", adgroupStorageHandler.generateFieldSchemaArray());
+  // adgroupStorageHandler.initDb("adGroups", adgroupStorageHandler.generateFieldSchemaArray());
 
   // Prevalidate adgroups and store for lookup in BigQuery
   var keywordValidationStorageHandler = new StorageHandler();
@@ -116,7 +116,7 @@ function nrCampaignBuilder(feedContent) {
   keywordValidationStorageHandler.initDb("prevalidatedKeywords", [idFieldSchema, validationFieldSchema, adgroupFieldSchema, validationTypeFieldSchema]);
 
   var sitelinkStorageHandler = new StorageHandler();
-  sitelinkStorageHandler.initDb("adGroup_sitelinks", sitelinkStorageHandler.generateFieldSchemaArray());
+  // sitelinkStorageHandler.initDb("adGroup_sitelinks", sitelinkStorageHandler.generateFieldSchemaArray());
 
 
   // Pausing ALL adgroups if campaigns are missing in feed
@@ -1723,7 +1723,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     if(adGroupObject.campaign != this.campaignName) continue;
 
     // Push All adgroups in feed to adgroup Objects
-    if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 0) adGroupObjects.push(adGroupObject);
+    if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 0 || INPUT_SOURCE_MODE == "SQA") adGroupObjects.push(adGroupObject);
 
     if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1) {
 
@@ -1975,9 +1975,9 @@ AdGroupHandler.prototype.create = function(adGroupList, defaultBid, storageHandl
     throw new Error("NoCampaignFoundError: No campaign found for " + this.campaignName + ". Please rerun the script after campaign bulk upload. Specific error : " + e + ". stack: " + e.stack);
   }
 
-  if (adGroupList.length > 0 && ADGROUP_CREATION_LOG.length > 0 && SCRIPT_RUN_SCOPE.productionMode_writeToDB == "YES") {
+  /*if (adGroupList.length > 0 && ADGROUP_CREATION_LOG.length > 0 && SCRIPT_RUN_SCOPE.productionMode_writeToDB == "YES") {
     storageHandler.writeRows(ADGROUP_CREATION_LOG, "adGroups");
-  }
+  }*/
   ADGROUP_CREATION_LOG = [];
 };
 
@@ -3763,9 +3763,9 @@ function SitelinkHandler(campaignName) {
       } catch(e) { Logger.log("Adgroup fetch or sitelink operation on " + adGroupObject.adGroup + " not successful."); Logger.log("Error message : " + e.message + ". Stacktrace : " + e.stack);}
     } // END FOR LOOP Adgroup objects
 
-    if(SITELINK_CREATION_LOG.length > 0 && SCRIPT_RUN_SCOPE.productionMode_writeToDB === "YES") {
+    /*if(SITELINK_CREATION_LOG.length > 0 && SCRIPT_RUN_SCOPE.productionMode_writeToDB === "YES") {
       storageHandler.writeRows(SITELINK_CREATION_LOG, "adGroup_sitelinks");
-    }
+    }*/
     SITELINK_CREATION_LOG = []; // Empty sitelink creation log.
   };
 

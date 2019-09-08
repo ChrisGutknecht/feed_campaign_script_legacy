@@ -107,13 +107,14 @@ function nrCampaignBuilder(feedContent) {
   // adgroupStorageHandler.initDb("adGroups", adgroupStorageHandler.generateFieldSchemaArray());
 
   // Prevalidate adgroups and store for lookup in BigQuery
-  var keywordValidationStorageHandler = new StorageHandler();
-  var idFieldSchema = BigQuery.newTableFieldSchema(); idFieldSchema.name = 'id'; idFieldSchema.type = 'STRING';
-  var validationFieldSchema = BigQuery.newTableFieldSchema(); validationFieldSchema.description = 'the result of the query validation'; validationFieldSchema.name = 'validationStatus'; validationFieldSchema.type = 'BOOL';
-  var adgroupFieldSchema = BigQuery.newTableFieldSchema(); adgroupFieldSchema.name = 'adGroupName'; adgroupFieldSchema.type = 'STRING';
-  var validationTypeFieldSchema = BigQuery.newTableFieldSchema(); validationTypeFieldSchema.description = 'source of the query validation'; validationTypeFieldSchema.name = 'validationType'; validationTypeFieldSchema.type = 'STRING';
-
-  keywordValidationStorageHandler.initDb("prevalidatedKeywords", [idFieldSchema, validationFieldSchema, adgroupFieldSchema, validationTypeFieldSchema]);
+  if(INPUT_SOURCE_MODE == "ADBUILD") {
+    var keywordValidationStorageHandler = new StorageHandler();
+    var idFieldSchema = BigQuery.newTableFieldSchema(); idFieldSchema.name = 'id'; idFieldSchema.type = 'STRING';
+    var validationFieldSchema = BigQuery.newTableFieldSchema(); validationFieldSchema.description = 'the result of the query validation'; validationFieldSchema.name = 'validationStatus'; validationFieldSchema.type = 'BOOL';
+    var adgroupFieldSchema = BigQuery.newTableFieldSchema(); adgroupFieldSchema.name = 'adGroupName'; adgroupFieldSchema.type = 'STRING';
+    var validationTypeFieldSchema = BigQuery.newTableFieldSchema(); validationTypeFieldSchema.description = 'source of the query validation'; validationTypeFieldSchema.name = 'validationType'; validationTypeFieldSchema.type = 'STRING';
+    keywordValidationStorageHandler.initDb("prevalidatedKeywords", [idFieldSchema, validationFieldSchema, adgroupFieldSchema, validationTypeFieldSchema]);
+  }
 
   var sitelinkStorageHandler = new StorageHandler();
   // sitelinkStorageHandler.initDb("adGroup_sitelinks", sitelinkStorageHandler.generateFieldSchemaArray());
@@ -1786,7 +1787,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
 
 /**
-* @param array adGroupObjects,
+* @param array adGroupObjects
 * @return array adGroupList, a list of adGroup names
 */
 FeedHandler.prototype.getAdGroupList = function(adGroupObjects) {

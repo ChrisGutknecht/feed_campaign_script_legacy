@@ -3040,6 +3040,11 @@ KeywordHandler.prototype.addKwsWithRelativeBids = function(newKeywordConfig, url
         if(sameMt_duplFound === 1) nonExactKwObject.applyLabel(this.getLabel(DUPLICATE_KW_LABELS.sameMatchtype_new));
       }
 
+      // Add hasKeywords label to speed up entity refill
+      if(exactKeywordResult === true || nonExactKeywordResult === true) {
+        var standardLabel = this.getLabel("hasKeywords");
+        adGroup.applyLabel(standardLabel);
+      }
 
       // Logging keyword operation errors
       var exactErrorRow, nonExactErrorRow;
@@ -3050,20 +3055,15 @@ KeywordHandler.prototype.addKwsWithRelativeBids = function(newKeywordConfig, url
 
         if(exactKeywordOp.getErrors().toString().indexOf("POLICY") != -1) {
           adGroup.applyLabel(POLICY_ERROR_LABELS.keyword);
-        } else {
-          var standardLabel = this.getLabel("hasKeywords");
-          adGroup.applyLabel(standardLabel);
         }
       }
+
       if(nonExactKeywordOp && nonExactKeywordOp.getErrors().length > 0) {
         nonExactErrorRow = [TIME_STAMP, "Kw" , "Disapproved", nonExactKeywordOp.getErrors(), this.campaignName, this.adGroupObjects[i].adGroup ,"", nonExactBid,"","","","","","","","","","","","","","",""];
         ERROR_LOG.push(nonExactErrorRow);
 
         if(nonExactKeywordOp.getErrors().toString().indexOf("POLICY") != -1) {
           adGroup.applyLabel(POLICY_ERROR_LABELS.keyword);
-        } else {
-          var standardLabel = this.getLabel("hasKeywords");
-          adGroup.applyLabel(standardLabel);
         }
       }
       if(DEBUG_MODE == 1) Logger.log("Keywords created for " + this.adGroupObjects[i].adGroup + " in matchtypes exact, exactReverse, nonExact: " + exactKeywordResult + ", " + exactKeywordReverseResult + ", " + nonExactKeywordResult);

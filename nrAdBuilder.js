@@ -107,8 +107,8 @@ function nrCampaignBuilder(feedContent) {
   // adgroupStorageHandler.initDb("adGroups", adgroupStorageHandler.generateFieldSchemaArray());
 
   // Prevalidate adgroups and store for lookup in BigQuery
+  var keywordValidationStorageHandler = new StorageHandler();
   if(INPUT_SOURCE_MODE == "ADBUILD") {
-    var keywordValidationStorageHandler = new StorageHandler();
     var idFieldSchema = BigQuery.newTableFieldSchema(); idFieldSchema.name = 'id'; idFieldSchema.type = 'STRING';
     var validationFieldSchema = BigQuery.newTableFieldSchema(); validationFieldSchema.description = 'the result of the query validation'; validationFieldSchema.name = 'validationStatus'; validationFieldSchema.type = 'BOOL';
     var adgroupFieldSchema = BigQuery.newTableFieldSchema(); adgroupFieldSchema.name = 'adGroupName'; adgroupFieldSchema.type = 'STRING';
@@ -1670,15 +1670,18 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   var adGroupObjects = [];
   Logger.log("Building adgroup objects. Total input : " + this.feedContent.length);
 
-  var prevalidatedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", true);
-  Logger.log("prevalidatedKeywords (Length : " + prevalidatedKeywords.length + ") : " + prevalidatedKeywords[0]);
-
-  var discardedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", false);
-  Logger.log("discardedKeywords (Length : " + discardedKeywords.length + ") : " + discardedKeywords[0]);
-
   var KEYWORD_VALIDATION_LOG = [];
-  var maxLimit = (this.feedContent.length - prevalidatedKeywords.length - discardedKeywords.length) > 500 ? (prevalidatedKeywords.length + discardedKeywords.length + 500) : this.feedContent.length;
-  Logger.log("maxLimit : " + maxLimit);
+  if(INPUT_SOURCE_MODE == "ADBUILD") {
+    var prevalidatedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", true);
+    Logger.log("prevalidatedKeywords (Length : " + prevalidatedKeywords.length + ") : " + prevalidatedKeywords[0]);
+
+    var discardedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", false);
+    Logger.log("discardedKeywords (Length : " + discardedKeywords.length + ") : " + discardedKeywords[0]);
+
+
+    var maxLimit = (this.feedContent.length - prevalidatedKeywords.length - discardedKeywords.length) > 500 ? (prevalidatedKeywords.length + discardedKeywords.length + 500) : this.feedContent.length;
+    Logger.log("maxLimit : " + maxLimit);
+  }
 
   for(var i=1;i<maxLimit;i++){ //
     var listItem = this.feedContent[i];
@@ -1780,7 +1783,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   } // END For loop
 
   // Logger.log("New Cache Entries : " + JSON.stringify(KEYWORD_VALIDATION_LOG));
-  if(KEYWORD_VALIDATION_LOG.length > 0) this.storageHandler.writeRows(KEYWORD_VALIDATION_LOG, "prevalidatedKeywords");
+  if(KEYWORD_VALIDATION_LOG.length > 0 && INPUT_SOURCE_MODE == "ADBUILD") this.storageHandler.writeRows(KEYWORD_VALIDATION_LOG, "prevalidatedKeywords");
   Logger.log("validated adGroupObjects : " + adGroupObjects.length + " for campaign " + this.campaignName); Logger.log(" ");
   return adGroupObjects;
 };

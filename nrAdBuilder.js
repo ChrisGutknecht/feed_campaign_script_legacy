@@ -1683,6 +1683,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     var maxLimit = (this.feedContent.length - prevalidatedKeywords.length - discardedKeywords.length) > 500 ? (prevalidatedKeywords.length + discardedKeywords.length + 500) : this.feedContent.length;
     Logger.log("maxLimit : " + maxLimit);
   }
+  var maxLimit = typeof maxLimit == "undefined" ?  this.feedContent.length : maxLimit;
 
   for(var i=1;i<maxLimit;i++){ //
     var listItem = this.feedContent[i];
@@ -1713,9 +1714,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       gender : listItem[this.columnMapper["gender (text)"]],
       /*color : colorValue*/
     };
-    Logger.log("adGroupObject: "); Logger.log(adGroupObject);
 
-    Logger.log("adGroupObjects.length : " + adGroupObjects.length);
     if(EXTRA_COLUMNS.length > 0 && EXTRA_COLUMN_OBJECTVALUES){
       for(var j=0; j<EXTRA_COLUMNS.length; j++){
       	if(EXTRA_COLUMNS[j].toLowerCase().indexOf('url') > -1){
@@ -1734,7 +1733,6 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       adGroupObjects.push(adGroupObject);
       continue;
     }
-    Logger.log("adGroupObjects.length post: " + adGroupObjects.length);
 
     if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 0) adGroupObjects.push(adGroupObject);
 

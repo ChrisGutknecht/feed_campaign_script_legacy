@@ -1402,7 +1402,7 @@ CampaignSettingUpdateService.prototype.updateCampaigns = function() {
 
   this.getLabel("feedCamps_Lang+Loc_Settings_checked");
   this.getLabel("newFeedCampaigns_add_Lang+Loc_Settings");
-
+  this.getLabel("EntityCheck_Complete");
   try{
     var label = AdsApp.labels().withCondition('Name = "newFeedCampaigns_add_Lang+Loc_Settings"').get().next();
     var campaignIterator = label.campaigns().withCondition('Name CONTAINS_IGNORE_CASE "' + CAMPAIGN_INFO_CONFIG["campaign identifier"] + '"').get();
@@ -1727,7 +1727,8 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     if(adGroupObject.campaign != this.campaignName) continue;
 
     // Push All adgroups in feed to adgroup Objects
-    if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 0 || INPUT_SOURCE_MODE == "SQA") adGroupObjects.push(adGroupObject);
+    if(INPUT_SOURCE_MODE == "SQA") adGroupObjects.push(adGroupObject);
+    if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 0) adGroupObjects.push(adGroupObject);
 
     if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1) {
 

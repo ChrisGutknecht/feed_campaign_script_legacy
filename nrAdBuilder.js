@@ -1715,6 +1715,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     };
     Logger.log("adGroupObject: "); Logger.log(adGroupObject);
 
+    Logger.log("adGroupObjects.length : " + adGroupObjects.length);
     if(EXTRA_COLUMNS.length > 0 && EXTRA_COLUMN_OBJECTVALUES){
       for(var j=0; j<EXTRA_COLUMNS.length; j++){
       	if(EXTRA_COLUMNS[j].toLowerCase().indexOf('url') > -1){
@@ -1733,6 +1734,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       adGroupObjects.push(adGroupObject);
       continue;
     }
+    Logger.log("adGroupObjects.length post: " + adGroupObjects.length);
 
     if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 0) adGroupObjects.push(adGroupObject);
 

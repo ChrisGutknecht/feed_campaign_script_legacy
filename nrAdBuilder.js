@@ -1403,6 +1403,7 @@ CampaignSettingUpdateService.prototype.updateCampaigns = function() {
   this.getLabel("feedCamps_Lang+Loc_Settings_checked");
   this.getLabel("newFeedCampaigns_add_Lang+Loc_Settings");
   this.getLabel("EntityCheck_Complete");
+  
   try{
     var label = AdsApp.labels().withCondition('Name = "newFeedCampaigns_add_Lang+Loc_Settings"').get().next();
     var campaignIterator = label.campaigns().withCondition('Name CONTAINS_IGNORE_CASE "' + CAMPAIGN_INFO_CONFIG["campaign identifier"] + '"').get();

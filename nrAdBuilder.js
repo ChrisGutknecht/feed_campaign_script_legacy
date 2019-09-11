@@ -4573,7 +4573,7 @@ function StorageHandler(){
 
       Logger.log('Data set with ID = %s, Name = %s created.', dataSet.id, dataSet.friendlyName);
     } catch(e){
-      Logger.log("DatasetCreationException: The dataSetId " + this.dataSetId + " already exists. ");
+      Logger.log("DatasetCreationException: The dataSetId " + this.dataSetId + " already exists. "); Logger.log(e + " . " + e.stack);
     }
   }
 

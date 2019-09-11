@@ -1713,6 +1713,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       gender : listItem[this.columnMapper["gender (text)"]],
       /*color : colorValue*/
     };
+    Logger.log("adGroupObject: "); Logger.log(adGroupObject);
 
     if(EXTRA_COLUMNS.length > 0 && EXTRA_COLUMN_OBJECTVALUES){
       for(var j=0; j<EXTRA_COLUMNS.length; j++){

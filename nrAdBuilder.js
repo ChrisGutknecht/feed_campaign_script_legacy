@@ -223,7 +223,7 @@ function nrCampaignBuilder(feedContent) {
       if(INPUT_SOURCE_MODE === "SQA") negativeKeywordHandler.addNegativeKeywordToQuerySource();
 
       // 5. Creating sitelinks
-      if(SET_SITELINKS){
+      if(typeof SET_SITELINKS !== "undefined"){
         var sitelinkHandler = new SitelinkHandler(campaignName);
         sitelinkHandler.createAdGroupSitelinks(newAdGroupObjects, sitelinkStorageHandler);
 
@@ -843,7 +843,7 @@ ConfigValidator.prototype.checkUrlPrefixes = function(){
   var dummySiteLinkUrl = URL_SCHEMA.sitelinkSearchUrlPrefix + "a";
   var dummyUrls = [dummyAdUrl];
 
-  if(SET_SITELINKS) dummyUrls.push(dummySiteLinkUrl);
+  if(typeof SET_SITELINKS !== "undefined") dummyUrls.push(dummySiteLinkUrl);
 
   for(var i=0; i<dummyUrls.length;i++){
 

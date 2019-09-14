@@ -68,7 +68,7 @@ var DUPLICATE_KW_LABELS = {
 
 ADGROUP_STATUS_LABELS = typeof ADGROUP_STATUS_LABELS == "undefined" ? {"ENABLED" : "Activated_by_nrFeedCamps", "PAUSED" : "Paused_by_nrFeedCamps"} : ADGROUP_STATUS_LABELS;
 
-var SET_SITELINKS = typeof SITELINK_BUILDER_CONFIG.setSitelinks == "undefined" ? 1 : SITELINK_BUILDER_CONFIG.setSitelinks;
+var SET_SITELINKS = typeof SITELINK_BUILDER_CONFIG === "undefined" ? 1 : SITELINK_BUILDER_CONFIG.setSitelinks;
 var AD_TEMPLATE_HEADER_VALUES = ["Static Std", "Param Std", "Static Sale","Param Sale", "Param Custom"];
 var INPUT_SOURCE_MODE = "ADBUILD";
 

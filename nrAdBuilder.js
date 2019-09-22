@@ -3879,8 +3879,7 @@ function SitelinkHandler(campaignName) {
     siteLinkTextBuilderConfig.textBuilder.B.urlSchema = adGroupObject.brand + discountUrlSuffix;
 
     var listBySingleValueObjects = [];
-    var aggrType = adGroupObject.aggrega
-tionType;
+    var aggrType = adGroupObject.aggregationType;
     var aggregationTypeArray = ["BM", "BCG", "BG", "BC", "CG", "B"];
 
     // removing empty values from textBuilder

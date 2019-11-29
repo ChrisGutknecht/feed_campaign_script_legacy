@@ -1841,9 +1841,9 @@ FeedHandler.prototype.getNonSaleAdGroupList = function(adGroupObjects) {
 FeedHandler.prototype.foundInGoogleSuggest = function(keyword) {
   var foundInSuggest = 0;
   var xmlRequestUrl = "https://suggestqueries.google.com/complete/search?output=toolbar&hl="+ NEW_CAMPAIGN_CONFIG.useQueryData.language +"&q=" + keyword;
-  var xmlDocument = XmlService.parse(UrlFetchApp.fetch(xmlRequestUrl).getContentText());
 
   try {
+    var xmlDocument = XmlService.parse(UrlFetchApp.fetch(xmlRequestUrl).getContentText());
     firstEntry = xmlDocument.getRootElement().getChildren('CompleteSuggestion')[0].getChild('suggestion').getAttribute('data').getValue();
     foundInSuggest = 1;
   } catch(e) {if(DEBUG_MODE === 1) Logger.log("No Google suggest entry found for : " + keyword);}

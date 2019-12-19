@@ -103,22 +103,8 @@ function nrCampaignBuilder(feedContent) {
   var campaignSettingService = new CampaignSettingUpdateService();
   campaignSettingService.updateCampaigns();
 
-  var adgroupStorageHandler = new StorageHandler();
-  // adgroupStorageHandler.initDb("adGroups", adgroupStorageHandler.generateFieldSchemaArray());
-
   // Prevalidate adgroups and store for lookup in BigQuery
   var keywordValidationStorageHandler = new StorageHandler();
-  if(INPUT_SOURCE_MODE == "ADBUILD") {
-    var idFieldSchema = BigQuery.newTableFieldSchema(); idFieldSchema.name = 'id'; idFieldSchema.type = 'STRING';
-    var validationFieldSchema = BigQuery.newTableFieldSchema(); validationFieldSchema.description = 'the result of the query validation'; validationFieldSchema.name = 'validationStatus'; validationFieldSchema.type = 'BOOL';
-    var adgroupFieldSchema = BigQuery.newTableFieldSchema(); adgroupFieldSchema.name = 'adGroupName'; adgroupFieldSchema.type = 'STRING';
-    var validationTypeFieldSchema = BigQuery.newTableFieldSchema(); validationTypeFieldSchema.description = 'source of the query validation'; validationTypeFieldSchema.name = 'validationType'; validationTypeFieldSchema.type = 'STRING';
-    keywordValidationStorageHandler.initDb("prevalidatedKeywords", [idFieldSchema, validationFieldSchema, adgroupFieldSchema, validationTypeFieldSchema]);
-  }
-
-  var sitelinkStorageHandler = new StorageHandler();
-  // sitelinkStorageHandler.initDb("adGroup_sitelinks", sitelinkStorageHandler.generateFieldSchemaArray());
-
 
   // Pausing ALL adgroups if campaigns are missing in feed
   /*if(INPUT_SOURCE_MODE === "ADBUILD") {
@@ -205,7 +191,7 @@ function nrCampaignBuilder(feedContent) {
       adTemplateParser2.validateSheetsAndAggregationTypes(fullAdGroupObjects);
       adTemplates = adTemplateParser2.getAllTemplates();
 
-      adGroupHandler.create(newAdGroups.getList(), ADGROUP_DEFAULT_BID, adgroupStorageHandler);
+      adGroupHandler.create(newAdGroups.getList(), ADGROUP_DEFAULT_BID);
 
       // 3.2 Create ads, standard or sale, static and param
       var adHandler = new AdHandler(campaignName, newAdGroupObjects, adTemplates);
@@ -221,15 +207,6 @@ function nrCampaignBuilder(feedContent) {
       negativeKeywordHandler.addNegativeKeywordsPerAdGroup();
 
       if(INPUT_SOURCE_MODE === "SQA") negativeKeywordHandler.addNegativeKeywordToQuerySource();
-
-      // 5. Creating sitelinks
-      if(typeof SET_SITELINKS !== "undefined"){
-        var sitelinkHandler = new SitelinkHandler(campaignName);
-        sitelinkHandler.createAdGroupSitelinks(newAdGroupObjects, sitelinkStorageHandler);
-
-        sitelinkHandler.setSitelinkEndDateByStatus(toBePausedAdGroups, "paused", sitelinkStorageHandler);
-        sitelinkHandler.setSitelinkEndDateByStatus(toBeActiveAdGroups, "enabled", sitelinkStorageHandler);
-      }
 
       var snippetHandler = new SnippetHandler(campaignName);
       snippetHandler.addSnippets(newAdGroupObjects);
@@ -330,7 +307,7 @@ function nrCampaignBuilder(feedContent) {
 * 3.1 AdTemplateParser: gets data from the ad template spreadsheet
 * 3.2 Adhandler: creates ads and handles dispproved ads
 * 4. KeywordHandler: adds keywords with calculated bids
-* 5. SitelinkHandler: consists of builder and datehandler, to create adgroup-level sitelinks and set end dates
+* 5. (SitelinkHandler: deprecated)
 * 6. StorageHandler: persists adgroup statuses and sitelink end dates in BigQuery
 * 7. UrlHandler: service to allow custom url building schemata
 * 8. SnippetHandler: adds snippets
@@ -1679,7 +1656,6 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     var discardedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", false);
     Logger.log("discardedKeywords (Length : " + discardedKeywords.length + ") : " + discardedKeywords[0]);
 
-
     var maxLimit = (this.feedContent.length - prevalidatedKeywords.length - discardedKeywords.length) > 500 ? (prevalidatedKeywords.length + discardedKeywords.length + 500) : this.feedContent.length;
     Logger.log("maxLimit : " + maxLimit);
   }
@@ -1947,7 +1923,7 @@ function AdGroupHandler(campaignName) {
 * @throws {error} NoCampaignFoundError
 * @return void
 */
-AdGroupHandler.prototype.create = function(adGroupList, defaultBid, storageHandler) {
+AdGroupHandler.prototype.create = function(adGroupList, defaultBid) {
 
   try{
     var campaign = AdsApp.campaigns().withCondition('Name = \"' + this.campaignName + '\"').get().next();
@@ -1986,9 +1962,6 @@ AdGroupHandler.prototype.create = function(adGroupList, defaultBid, storageHandl
     throw new Error("NoCampaignFoundError: No campaign found for " + this.campaignName + ". Please rerun the script after campaign bulk upload. Specific error : " + e + ". stack: " + e.stack);
   }
 
-  /*if (adGroupList.length > 0 && ADGROUP_CREATION_LOG.length > 0 && SCRIPT_RUN_SCOPE.productionMode_writeToDB == "YES") {
-    storageHandler.writeRows(ADGROUP_CREATION_LOG, "adGroups");
-  }*/
   ADGROUP_CREATION_LOG = [];
 };
 
@@ -3694,813 +3667,10 @@ SnippetHandler.prototype.createSingleSnippet = function(list, snippetBuilder, ad
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
-// 5. SitelinkHandler: adds sitelinks, sets end date
+// 5. SitelinkHandler: adds sitelinks, sets end date (deprecated)
 //
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-function SitelinkHandler(campaignName) {
-
-  this.campaignName = campaignName;
-  this.dateYmd = new Date().toISOString().substring(0, 10);
-
-  ///////
-  /////// 5.1 SitelinkBuilder
-  ///////
-  /* STORY: On single adgroup level,
-  * 1. Determine the current number of sitelinks per sitelinkType and the expected number via iterative lookup through builder algorithms and
-  * 2. Create adgroup sitelinks as needed. NOT IMPLEMENTED ! >> this.campaignSitelinkBuilder = function() {}
-  */
-  ///////
-
-
-  /*
-  * @param array adGroupObjects
-  * @param object storageHandler
-  * @return void
-  * @throws exception MissingNewEntityException
-  */
-  this.createAdGroupSitelinks = function(adGroupObjects, storageHandler) {
-
-    this.adGroupObjects = adGroupObjects;
-
-    Logger.log("Creating 4-5 adgroup sitelinks for " + this.adGroupObjects.length + " adGroups.");
-
-    for(var i=0; i < this.adGroupObjects.length; i++) {
-
-      var adGroupObject = this.adGroupObjects[i];
-      if(DEBUG_MODE == 1){Logger.log(" "); Logger.log("****"); Logger.log("Initiating adgroup sitelink iteration for adGroup: " + this.adGroupObjects[i].adGroup);}
-
-      if(this.checkIfCampaignLimitReached === true) return;
-
-      // Find specific ADGROUP of adgroup object via iterator
-      try {
-        var adGroupIterator = AdsApp.adGroups()
-        .withCondition('CampaignName = "' + this.campaignName + '"')
-        .withCondition('CampaignStatus != REMOVED')
-        .withCondition('AdGroupName CONTAINS_IGNORE_CASE \"' + adGroupObject.adGroup  + '\"')
-        .withCondition("Status = ENABLED")
-        .get();
-
-        while (adGroupIterator.hasNext()) {
-          var adgroup = adGroupIterator.next();
-          var adGroupSitelinkIterator = adgroup.extensions().sitelinks().get();
-          var newSitelinks = SITELINK_BUILDER_CONFIG.maxAddedAdGroupSitelinks - adGroupSitelinkIterator.totalNumEntities();
-          // Early exit if no sitelinks to be added.
-          if (newSitelinks < 1) {
-            Logger.log("AdGroup" + adgroup.getName() + "contains min "  + SITELINK_BUILDER_CONFIG.maxAmountAdGroupSitelinks + ", thus a sufficient amount. Moving on to next adGroup...");Logger.log(" ");
-            continue;
-          }
-
-          // START specific sitelink creation iterators here
-          var logLengthBefore = SITELINK_CREATION_LOG.length;
-          var newSLsAfter1stRound = this.createBySingleValue(adgroup, adGroupObject, newSitelinks);
-          var newSLsAfter2ndRound = this.createByClicks(adGroupObject, newSLsAfter1stRound);
-          // this.createBySaleCombination(adGroupObject, newSLsAfter2ndRound);
-
-          // add fallback or evergreen sitelinks if min of 4 is not reached
-          var logLengthDelta = SITELINK_CREATION_LOG.length - logLengthBefore;
-
-          if(logLengthDelta < 4){
-            var missingSitelinks = 4 - logLengthDelta;
-            for (var j=0; j < missingSitelinks; j++) {
-              var fallbackSitelink = SITELINK_BUILDER_CONFIG.sitelinkFallbacks[j];
-              this.createFallbackSitelink(adgroup, adGroupObject, fallbackSitelink);
-            }
-          }
-        } // END WHILE LOOP
-      } catch(e) { Logger.log("Adgroup fetch or sitelink operation on " + adGroupObject.adGroup + " not successful."); Logger.log("Error message : " + e.message + ". Stacktrace : " + e.stack);}
-    } // END FOR LOOP Adgroup objects
-
-    /*if(SITELINK_CREATION_LOG.length > 0 && SCRIPT_RUN_SCOPE.productionMode_writeToDB === "YES") {
-      storageHandler.writeRows(SITELINK_CREATION_LOG, "adGroup_sitelinks");
-    }*/
-    SITELINK_CREATION_LOG = []; // Empty sitelink creation log.
-  };
-
-
-  /*
-  * @return {bool} limitReached
-  * @throws {exception} SitelinkMaxLimitPerCampaignException
-  * @throws {exception} CampaignFetchFailedException
-  */
-  this.checkIfCampaignLimitReached = function (){
-
-    var limitReached = false;
-    var campaignSelector = AdsApp.campaigns().withCondition('Name CONTAINS_IGNORE_CASE "' + this.campaignName + '"').withCondition('CampaignStatus != REMOVED').get();
-
-    try{
-      while (campaignIterator.hasNext()) {
-        var campaign = campaignIterator.next();
-        var campaignSitelinkSelector = campaign.extensions().sitelinks().get();
-
-        if (campaignSitelinkIterator.totalNumEntities() == 10000) {
-          limitReached = true;
-          Logger.log("SitelinkMaxLimitPerCampaignException: Please split campaign or delete sitelinks.");
-        }
-      }
-    } catch(e){Logger.log("CampaignFetchFailedException: the specified campaign could not be fetched" + e + "." + e.stack);}
-
-    return limitReached;
-  };
-
-
-  ///////
-  /////// 5.1.1 createSitelinksBySingleValue
-  ///////
-
-  /*
-  * @param object adgroup,
-  * @param object adGroupObject
-  * @param int maxNewSitelinks
-  * @return int remainingSitelinks
-  * @throws exception
-  */
-  this.createBySingleValue = function(adgroup, adGroupObject, maxNewSitelinks){
-
-    var siteLinkTextBuilderConfig = SITELINK_BUILDER_CONFIG;
-
-    var bcgGender = (adGroupObject.brand.length + adGroupObject.category.length > 19 && adGroupObject.gender.split(",").length == 1) ?
-      adGroupObject.gender.replace("Damen","D.").replace("Herren","H.").replace("Kinder","K.") : adGroupObject.gender;
-    var bcgAffix = adGroupObject.brand.length + adGroupObject.category.length + adGroupObject.gender.length < 24 ? "© " : " ";
-
-    var bgAffixLong = "© " + SITELINK_BUILDER_CONFIG.textFillWords.for_value + " ";
-    var bgAffix = adGroupObject.brand.length < 13 ? bgAffixLong : " ";
-
-    var bcAffixLong = " " + SITELINK_BUILDER_CONFIG.textFillWords.by_value + " ";
-    var bcAffix = adGroupObject.brand.length + adGroupObject.category.length < 21 ? bcAffixLong : " ";
-    var bcSuffix = adGroupObject.brand.length + adGroupObject.category.length < 20 ? "© " : "";
-
-    var cgAffixLong = " " + SITELINK_BUILDER_CONFIG.textFillWords.for_value + " ";
-    var cgAffix = adGroupObject.category.length < 21 ? cgAffixLong : "";
-
-    var useCgDiscountSuffix = function(adGroupObject){
-      var suffix;
-      if(adGroupObject.gender.length + adGroupObject.category.length < 12 && adGroupObject.discount > 19 && siteLinkTextBuilderConfig.useDiscountPercentageInText == "YES"){
-        suffix = " " + SITELINK_BUILDER_CONFIG.textFillWords.upto_value + " -" + adGroupObject.discount + "%";
-      } else { suffix = "";}
-      return suffix;
-    };
-    var cgSuffix = useCgDiscountSuffix(adGroupObject);
-
-    var usebSuffix = function(adGroupObject){
-      var bSuffix;
-      if(adGroupObject.brand.length < 16 && adGroupObject.discount > 19 && siteLinkTextBuilderConfig.useDiscountPercentageInText == "YES"){
-        bSuffix = "© " + SITELINK_BUILDER_CONFIG.textFillWords.upto_value + " -" + adGroupObject.discount + "%";
-      } else {bSuffix = "© " + SITELINK_BUILDER_CONFIG.textFillWords.shop_value ;}
-      return bSuffix;
-    };
-    var bSuffix = usebSuffix(adGroupObject);
-
-    var usediscountUrlSuffix = function(bSuffix,siteLinkTextBuilderConfig) {
-      var urlSuffix;
-      if(siteLinkTextBuilderConfig.useDiscountPercentageInText == "YES" && bSuffix.indexOf("%")){
-        urlSuffix = " " + siteLinkTextBuilderConfig.discountSalePhrase;
-      } else urlSuffix = "";
-      return urlSuffix;
-    };
-    var discountUrlSuffix = usediscountUrlSuffix(bSuffix,siteLinkTextBuilderConfig);
-
-    siteLinkTextBuilderConfig.textBuilder = {
-      BCG : {  textSchema : adGroupObject.brand + bcgAffix + bcgGender + " " +adGroupObject.category }, // BCG > Nike Laufschuhe Damen
-      BG : { textSchema : adGroupObject.brand + bgAffix + adGroupObject.gender}, // BG > Damen Nike
-      BC : { textSchema : adGroupObject.category + bcAffix + adGroupObject.brand + bcSuffix}, //BC > Nike Laufschuhe
-      CG : { textSchema : adGroupObject.category + cgAffix + adGroupObject.gender + cgSuffix }, // CG > Laufschuhe,
-      B : { textSchema : adGroupObject.brand + bSuffix } // B > Nike
-    };
-
-    // Extending textBuilder config object with URL schemata, no configurability planned
-    siteLinkTextBuilderConfig.textBuilder.BCG.urlSchema = adGroupObject.brand + " " + adGroupObject.category + " " + adGroupObject.gender;
-    siteLinkTextBuilderConfig.textBuilder.BG.urlSchema = adGroupObject.brand + " " + adGroupObject.gender;
-    siteLinkTextBuilderConfig.textBuilder.BC.urlSchema = adGroupObject.brand + " " + adGroupObject.category;
-    siteLinkTextBuilderConfig.textBuilder.CG.urlSchema = adGroupObject.category + " " + adGroupObject.gender + discountUrlSuffix;
-    siteLinkTextBuilderConfig.textBuilder.B.urlSchema = adGroupObject.brand + discountUrlSuffix;
-
-    var listBySingleValueObjects = [];
-    var aggrType = adGroupObject.aggregationType;
-    var aggregationTypeArray = ["BM", "BCG", "BG", "BC", "CG", "B"];
-
-    // removing empty values from textBuilder
-    if(adGroupObject.brand.length === 0) {
-      siteLinkTextBuilderConfig.textBuilder.BCG = undefined;
-      siteLinkTextBuilderConfig.textBuilder.BG = undefined;
-      siteLinkTextBuilderConfig.textBuilder.BC = undefined;
-      siteLinkTextBuilderConfig.textBuilder.B = undefined;
-    }
-    if(adGroupObject.category.length === 0) {
-      siteLinkTextBuilderConfig.textBuilder.BCG = undefined;
-      siteLinkTextBuilderConfig.textBuilder.BC = undefined;
-      siteLinkTextBuilderConfig.textBuilder.CG = undefined;
-    }
-    if(adGroupObject.gender.length === 0) {
-      siteLinkTextBuilderConfig.textBuilder.BG = undefined;
-      siteLinkTextBuilderConfig.textBuilder.CG = undefined;
-    }
-
-    // removing Brand type from textBuilder, if not in config array
-    if(SITELINK_BUILDER_CONFIG.sitelinkTypes.indexOf("B") == -1) siteLinkTextBuilderConfig.textBuilder.B = undefined;
-    if(SITELINK_BUILDER_CONFIG.sitelinkTypes.indexOf("CG") == -1) siteLinkTextBuilderConfig.textBuilder.CG = undefined;
-
-    var ownremovedAggrTypeArray = aggregationTypeArray;
-
-    try{
-      ownremovedAggrTypeArray.splice(ownremovedAggrTypeArray.indexOf(aggrType),1); // Remove own entry from aggregationTypeArray
-    } catch(e) {
-      Logger.log("MissingAggregationTypeException: Type" + aggrType + "not in aggregationTypeArray"); Logger.log("Specific error : " + e);
-      Logger.log("Error message " + e.message + ". Stacktrace : " + e.stack);
-    }
-
-    for(var j=0; j < ownremovedAggrTypeArray.length; j++){
-      if(DEBUG_MODE == 1) {Logger.log(" "); Logger.log("Building sitelink list for adGroup " + adGroupObject.adGroup + " (" + aggrType + ") with Type " + ownremovedAggrTypeArray[j]);}
-
-      // CASE 1: BCG
-      if(aggrType == "BCG"){ // Nike Laufschuhe Damen
-
-        var ownremovedConfig = siteLinkTextBuilderConfig.textBuilder;
-        if(ownremovedAggrTypeArray[j] == "BM") continue; // Skip BM as giving soruce as it contains no schema
-
-        // Make sure "B" is only added once
-        if(ownremovedConfig["B"]){
-          listBySingleValueObjects.push({
-            siteLinkText : ownremovedConfig["B"].textSchema.substring(25,0),
-            siteLinkUrl : ownremovedConfig["B"].urlSchema
-          });
-        }
-
-        for(var prop in ownremovedConfig) {
-          if(typeof ownremovedConfig[prop] == "undefined") continue;  // Skip if undefined
-          if(aggrType == prop || prop == "B") {continue;}
-
-          if(siteLinkTextBuilderConfig.skipIfTextTooLong == "YES" && ownremovedConfig[prop].textSchema.length > 25){continue;}
-
-          try{
-            // Prevent duplicate entries
-            var skipEntry = false;
-            for(var i=0; i<listBySingleValueObjects.length; i++) {
-              if(listBySingleValueObjects[i].siteLinkText == ownremovedConfig[prop].textSchema.substring(25,0)) skipEntry = true;
-            }
-            if(skipEntry === true) continue;
-
-            listBySingleValueObjects.push({
-              siteLinkText : ownremovedConfig[prop].textSchema.substring(25,0),
-              siteLinkUrl : ownremovedConfig[prop].urlSchema
-            });
-          } catch(e){ continue;}
-        } // END FOR IN LOOP
-      }
-
-      // CASE 2: BC or BM or B
-      if(aggrType == "BC" || aggrType == "BM" || aggrType == "B"){
-
-        var genderArray = adGroupObject.gender.split(",");
-        var categoryArray = adGroupObject.category.split(",").slice(0,2);
-        var ownremovedConfig = siteLinkTextBuilderConfig.textBuilder;
-        if(ownremovedAggrTypeArray[j] == "BM") {continue;} // Skip BM as giving soruce as it contains no schema
-
-        // Make sure "B" is only added once
-        if(ownremovedConfig["B"]){
-          listBySingleValueObjects.push({
-            siteLinkText : ownremovedConfig["B"].textSchema.substring(25,0),
-            siteLinkUrl : ownremovedConfig["B"].urlSchema
-          });
-        }
-
-        if(genderArray.length > 0 && categoryArray.length == 1) {
-          for (var k=0; k <genderArray.length; k++) {
-            if(genderArray[k].length === 0) continue;
-
-            for(var prop in ownremovedConfig) {
-
-              try{
-                if(prop == aggrType || prop == "B"){continue;}
-                if(typeof ownremovedConfig[prop] == "undefined") continue;  // Skip if undefined
-
-                if (siteLinkTextBuilderConfig.skipIfTextTooLong == "YES" && ownremovedConfig[prop].textSchema.length > 25){continue;}
-                var regex = new RegExp(adGroupObject.gender, "");
-
-                var bcsitelinkString = ownremovedConfig[prop].textSchema.replace(regex, function(match) { return match.split(",")[k]; });
-                var urlString = ownremovedConfig[prop].urlSchema.replace(" Unisex","").replace(regex, function(match) { return match.split(",")[k]; });
-
-                // Edge case if multiple gender values with long category and brand name
-                if(genderArray.length > 1 && bcsitelinkString > 25) {
-                  var bcShortSitelinkString = bcsitelinkString.replace("Damen","D.").replace("Herren","H.").replace("Kinder","K.");
-                  Logger.log("New string: " + bcsitelinkString);
-                }
-                var bcNewSitelinkString = bcShortSitelinkString ? bcShortSitelinkString : bcsitelinkString;
-
-                // Prevent duplicate entries
-                var skipEntry = false;
-                for(var i=0; i<listBySingleValueObjects.length; i++) {
-                  if(listBySingleValueObjects[i].siteLinkText == bcNewSitelinkString.substring(25,0)) skipEntry = true;
-                }
-                if(skipEntry === true) continue;
-
-                listBySingleValueObjects.push({
-                  siteLinkText : bcNewSitelinkString.substring(25,0),
-                  siteLinkUrl : urlString
-                });
-
-              } catch(e){
-                Logger.log("Specific error for " + prop + " : " + e); Logger.log(" ");
-                continue;
-              }
-            } // END FOR IN config loop
-          } // END FOR gender array loop
-        } // END if gender > 0
-      }
-
-      // CASE 3: BG or B
-      if(aggrType == "BG" || aggrType == "B"){
-
-        var categoryArray = adGroupObject.category.split(",").slice(0,2);
-        var genderArray = adGroupObject.gender.split(",").slice(0,2);
-        var ownremovedConfig = siteLinkTextBuilderConfig.textBuilder;
-
-        if(ownremovedAggrTypeArray[j] == "BM") {continue;} // Skip BM as giving soruce as it contains no schema
-
-        if(categoryArray.length > 0 && genderArray.length == 1) {
-          for (var k=0; k <categoryArray.length; k++) {
-            if(categoryArray[k].length == 0) continue;
-
-            for(var prop in ownremovedConfig) {
-              try{
-                if(prop == aggrType) continue;
-                if(typeof ownremovedConfig[prop] == "undefined") continue;  // Skip if undefined
-
-                if (siteLinkTextBuilderConfig.skipIfTextTooLong == "YES" && ownremovedConfig[prop].textSchema.length > 25){continue;}
-                var regex = new RegExp(adGroupObject.category, "");
-
-                var sitelinkString = ownremovedConfig[prop].textSchema.replace(regex, function(match) { return match.split(",")[k]; });
-                var urlString = ownremovedConfig[prop].urlSchema.replace(regex, function(match) { return match.split(",")[k]; });
-
-                // Prevent duplicate entries
-                var skipEntry = false;
-                for(var i=0; i<listBySingleValueObjects.length; i++) {
-                  if(listBySingleValueObjects[i].siteLinkText == sitelinkString.substring(25,0)) skipEntry = true;
-                }
-                if(skipEntry == true) continue;
-
-                listBySingleValueObjects.push({
-                  siteLinkText : sitelinkString.substring(25,0),
-                  siteLinkUrl : urlString // >> @TODO NEW: UrlHandler.getFinalUrl(urlPrefix, urlIdentFragment)
-                });
-              } catch(e){ continue;}
-            } // END FOR IN config loop
-
-          } // END FOR category array loop
-        } // END if category > 0
-      }
-
-      // CASE 4: CG
-      if(aggrType == "CG"){
-
-        var brandArray = adGroupObject.brand.split(",").slice(0,2);
-        var ownremovedConfig = siteLinkTextBuilderConfig.textBuilder;
-
-        if(ownremovedAggrTypeArray[j] == "BM") {continue;} // Skip BM as giving soruce as it contains no schema
-
-        if(brandArray.length > 0) {
-          for (var k=0; k <brandArray.length; k++) {
-            if(brandArray[k].length == 0) continue;
-
-            for(var prop in ownremovedConfig) {
-              try{
-                if(prop == aggrType || prop == "B"){continue;}
-                if(typeof ownremovedConfig[prop] == "undefined") continue;  // Skip if undefined
-
-                if (siteLinkTextBuilderConfig.skipIfTextTooLong == "YES" && ownremovedConfig[prop].textSchema.length > 25){continue;}
-
-                var regex = new RegExp(adGroupObject.brand, "");
-                var sitelinkString = ownremovedConfig[prop].textSchema.replace(regex, function(match) { return match.split(",")[k]; });
-                var urlString = ownremovedConfig[prop].urlSchema.replace(regex, function(match) { return match.split(",")[k]; });
-
-                // Prevent duplicate entries
-                var skipEntry = false;
-                for(var i=0; i<listBySingleValueObjects.length; i++) {
-                  if(listBySingleValueObjects[i].siteLinkText == sitelinkString.substring(25,0)) skipEntry = true;
-                }
-                if(skipEntry == true) continue;
-
-                listBySingleValueObjects.push({
-                  siteLinkText : sitelinkString.substring(25,0),
-                  siteLinkUrl : urlString // >> @TODO NEW: UrlHandler.getFinalUrl(urlPrefix, urlIdentFragment)
-                });
-              } catch(e){ continue; }
-            } // END for in config loop
-
-          } // END FOR brand array loop
-        } // END if brand > 0
-      }
-
-      break;
-    } // END For loop ownremovedAggrTypeArray
-
-    if(listBySingleValueObjects.length > 4) listBySingleValueObjects.length = 4;
-    if(DEBUG_MODE == 1) {Logger.log("Sitelink data for " + adGroupObject.adGroup + " with length " + listBySingleValueObjects.length + " : " + JSON.stringify(listBySingleValueObjects)); Logger.log(" ");}
-    var createdSitelinks = this.setAdGroupSitelinks(adgroup, adGroupObject, listBySingleValueObjects);
-    var remainingSitelinks = maxNewSitelinks - createdSitelinks;
-
-    return remainingSitelinks;
-  }
-
-  ///////
-  /////// 5.1.2 createSitelinksByClicks
-  /////// Every adgroup gets the top 10 adgroups by parent-node by clicks as sitelinks
-  ///////
-
-  /*
-  * @param object adGroupObject
-  * @param int maxNewSitelinks
-  * @return int remainingSitelinks
-  */
-  this.createByClicks = function(adGroupObject, newSLsAfter1stRound){
-
-    var listByClicks = [];
-    var aggregationReference = this.determineAggregationReference(adGroupObject);
-
-    var adGroupIterator = AdsApp.adGroups()
-    .withCondition('CampaignName = "' + this.campaignName + '"')
-    .withCondition('CampaignStatus != REMOVED')
-    .withCondition('AdGroupName CONTAINS "_' + aggregationReference + '"')
-    .withCondition("Status = ENABLED")
-    .withCondition("Clicks > " + SITELINK_BUILDER_CONFIG.minClicksForTopAdGroups)
-    .forDateRange(SITELINK_BUILDER_CONFIG.periodForClicks)
-    .orderBy("Clicks DESC")
-    .withLimit(SITELINK_BUILDER_CONFIG.maxAdGroupSitelinksPerType)
-    .get();
-
-    try{
-      while (adGroupIterator.hasNext()) {
-        var adgroup = adGroupIterator.next();
-        var adGroupNameCleaned = adGroup.getName().replace("_"," ");
-
-        listByClicks.push(
-          {
-            siteLinkText : adGroupNameCleaned.substring(25,0),
-            siteLinkUrl : adGroupNameCleaned // >> @TODO NEW: UrlHandler.getFinalUrl(urlPrefix, urlIdentFragment)
-          });
-      }
-      if(DEBUG_MODE == 1) {Logger.log("Found " + listByClicks.length + " top adgroups for given criteria. First item : " + listByClicks[0]);}
-    } catch(e) {
-      Logger.log("The adgroup fetch for " + adGroup.getName() + "returned no adGroups with min "  + SITELINK_BUILDER_CONFIG.minClicksForTopAdGroups + " clicks. Moving on...");
-    }
-
-    // Fetching the actual adGroup to create the found sitelinks
-    try{
-      var adGroupIterator = AdsApp.adGroups()
-      .withCondition('CampaignName = "' + this.campaignName + '"')
-      .withCondition('CampaignStatus != REMOVED')
-      .withCondition('AdGroupName CONTAINS_IGNORE_CASE \"' + adGroupObject.adGroup + '\"')
-      .get();
-    }catch(e){ Logger.log("ParsingErrorInSelectorExpection: Specific error" + e + " . " + e.stack)}
-
-
-    while (adGroupIterator.hasNext()) {
-      var focusAdgroup = adGroupIterator.next();
-      var createdSitelinks = this.setAdGroupSitelinks(focusAdgroup, adGroupObject, listByClicks);
-      var remainingSitelinks = SITELINK_BUILDER_CONFIG.maxAmountAdGroupSitelink - createdSitelinks;
-    }
-    return remainingSitelinks;
-  }
-
-  /*
-  * @param object adGroupObject
-  * @return array aggregationReference, i.e. if brand, category, brand-cat or brand-gen
-  */
-
-  this.determineAggregationReference = function(adGroupObject) {
-
-    var aggregationType = adGroupObject.aggregationType;
-    var aggregationReference;
-
-    // @ADDON: Special case for subcategory BCG: BC or BG?
-    if(aggregationType.charAt(0) == "B"){
-      aggregationReference = "brand";
-    } else
-      if (aggregationType.charAt(0) == "C") {
-        aggregationReference = "category";
-      }
-
-    return aggregationReference;
-  }
-
-
-
-  ///////
-  /////// 5.1.3 createBySaleCombinations
-  ///////
-
-  this.createBySaleCombinations = function(){} // @TODO use logic of 5.1.2 but add sale
-
-
-
-  ///////
-  /////// 5.1.5 Generic Builder Methods
-  ///////
-
-  /*
-  * @param object adgroup
-  * @param object adGroupObject
-  * @param array sitelinkList
-  * @return int createdSitelinks
-  * @throws exception AdGroupNotFoundException
-  * @throws exception NoSitelinkException
-  */
-  this.setAdGroupSitelinks = function(adgroup, adGroupObject, sitelinkList) {
-
-    var createdSitelinks = 0;
-
-    // StorageHandler.getIdExclusionStatement(adGroup, sitelinkList);
-
-    var adGroupSitelinkIterator = adgroup.extensions().sitelinks().get();
-
-    for (i = 0; i < sitelinkList.length; i++) {
-      // CHECK if sitelink already exists @TODO: Write log service
-      try{
-        if(adGroupSitelinkIterator.totalNumEntities() > this.maxAddedAdGroupSitelinks) {
-          Logger.log("The adGroup " +  adgroup.getName() + " has alreay reached the max amount of sitelinks"); Logger.log(" ");
-          break;
-        }
-      } catch(e){
-        Logger.log("NoSitelinkException: There are no sitelinks for"  +  adgroup.getName() + ". Starting creation ... "); Logger.log("Specific error : " + e);Logger.log(" ");
-      }
-
-      // Start creation of sitelink
-      if(sitelinkList[i]){
-        var singleSiteLinkObject = sitelinkList[i];
-        createdSitelinks += this.createSingleSitelink(adgroup, adGroupObject, singleSiteLinkObject);
-      }
-    } // END FOR LOOP Sitelinklist
-
-    return createdSitelinks;
-  }
-
-
-
-  /*
-  * @param object adgroup
-  * @param object adGroupObject
-  * @param object singleSitelink
-  * @return int creationResult
-  * @throws exception SitelinkCreationEception
-  */
-  this.createSingleSitelink = function(adgroup, adGroupObject, singleSitelink) {
-
-    var urlPrefix = this.getUrlPrefix();
-    var prelimUri;
-
-    if(URL_SCHEMA.sitelinkSearchUrl_wordsToRemove && URL_SCHEMA.sitelinkSearchUrl_wordsToRemove.length){
-      prelimUri = this.cleanAndRemoveStopWords(singleSitelink.siteLinkUrl);
-    }
-    finalUri = prelimUri ? prelimUri : singleSitelink.siteLinkUrl;
-    var finalUrl = urlPrefix + finalUri;
-
-    if(URL_SCHEMA.sitelinkSearchUrlSuffix && URL_SCHEMA.sitelinkSearchUrlSuffix.length > 0) finalUrl = finalUrl + URL_SCHEMA.sitelinkSearchUrlSuffix;
-
-    if(URL_SCHEMA.addParameters == "YES") {
-      var urlParameters = this.getUrlParameters(adGroupObject.campaign);
-      finalUrl += urlParameters;
-    }
-
-    var creationResult = 0;
-    if(DEBUG_MODE == 1) {Logger.log("sitelink URL: " + finalUrl);}
-
-    this.sitelinkBuilder = AdsApp.extensions().newSitelinkBuilder();
-
-    try{
-      var newSitelink = this.sitelinkBuilder
-      .withLinkText(singleSitelink.siteLinkText)
-      .withFinalUrl(finalUrl)
-      .build()
-      .getResult();
-
-      var sitelinkOperation = adgroup.addSitelink(newSitelink);
-
-      if (sitelinkOperation.isSuccessful()) {
-        creationResult = 1;
-
-        var sitelinkName = singleSitelink.siteLinkUrl.replace(/ |_/g,"_");
-
-        // EGDE CASE CG & SALE: TIED to implementation that type CG uses SaleSuffix, cutting of salesuffix for clean sitelinkname
-        var sitelinkNameClean;
-        if(sitelinkName.indexOf("_Sale") != -1 && SITELINK_BUILDER_CONFIG.useDiscountPercentageInText == "YES") {
-          sitelinkNameClean = sitelinkName.replace("_Sale","");
-        } else {
-          sitelinkNameClean = sitelinkName
-        };
-
-        var sitelinkCreationLogObject = {
-          "id" : sitelinkOperation.getResult().getId(),
-          "entityName" : sitelinkNameClean.toLowerCase(),
-          "entityType" : "adGroupSitelink",
-          "campaignName" : this.campaignName,
-          "campaignId" : adgroup.getCampaign().getId(),
-          "adgroupName" : adgroup.getName(),
-          "adgroupId" : adgroup.getId(),
-          "creationDate" : this.dateYmd,
-          "status" : "enabled"
-        };
-        if(DEBUG_MODE == 1) {Logger.log("sitelinkCreationLogRow : " + JSON.stringify(sitelinkCreationLogObject));}
-        SITELINK_CREATION_LOG.push(sitelinkCreationLogObject);
-      } else {
-        var siteLinkErrors = sitelinkOperation.getErrors();
-
-        var errorRow = [TIME_STAMP, "Sitelink" , "Failed", siteLinkErrors, this.campaignName, adgroup.getName() , "", "", "", "", "", "", "", "", "", "","","",singleSitelink.siteLinkText,"","","",""];
-        ERROR_LOG.push(errorRow);
-        ERROR_SUMMARY_OBJECT.siteLinkErrorCount++;
-        Logger.log("Sitelink Exception: The sitelink operation for sitelink " + singleSitelink.textSchema + " in " + adgroup.getName() + " showed an error. ");
-      }
-
-    } catch(e){
-      Logger.log("SitelinkCreationEception: The sitelink " + singleSitelink.textSchema + " for "  +  adgroup.getName() + " could NOT be added.");
-      Logger.log("Specific error : " + e + ". Stacktrace : " + e.stack); Logger.log(" ");
-      ERROR_SUMMARY_OBJECT.siteLinkErrorCount++;
-    }
-    return creationResult;
-  }
-
-  /*
-  * @return string urlPrefix
-  */
-  this.getUrlPrefix = function(){
-    var urlPrefix;
-    if(URL_SCHEMA.sitelinkSearchUrlPrefix && URL_SCHEMA.sitelinkSearchUrlPrefix.length > 0) {
-      urlPrefix = URL_SCHEMA.sitelinkSearchUrlPrefix;
-    } else urlPrefix = URL_SCHEMA.urlPrefix;
-    return urlPrefix;
-  }
-
-  /*
-  * @param string uri
-  * @return string cleanedUri
-  */
-  this.cleanAndRemoveStopWords = function(uri){
-    var cleanedUri = uri;
-
-    for(var i=0; i < URL_SCHEMA.sitelinkSearchUrl_wordsToRemove.length; i++){
-      var regexString = new RegExp(URL_SCHEMA.sitelinkSearchUrl_wordsToRemove[i], "i");
-      cleanedUri = cleanedUri.replace(regexString, "");
-    }
-
-    cleanedUri = cleanedUri.replace(/ |_/g,"+").replace(/&|-/g,"").replace(/\+\+/g,"+");
-    return cleanedUri;
-  }
-
-  /*
-  * @param string campaignName
-  * @return string dynUrlParamString
-  */
-  this.getUrlParameters = function(campaignName){
-    var urlParameterString =  URL_SCHEMA.sitelinkSearchUrlPrefix.indexOf("?") == -1 ? "?":  "&" ;
-    urlParameterString += URL_SCHEMA.urlParameters.replace("adGroup/keyword","sitelink");
-    var regexString = new RegExp("campaign", "i");
-    var dynUrlParamString = urlParameterString.replace(regexString, campaignName);
-
-    return dynUrlParamString;
-  }
-
-
-
-
-
-  /*
-  * @param object adgroup
-  * @param object adgroupObject
-  * @param object fallbackSitelink
-  * @return int creationResult
-  * @throws exception SitelinkCreationEception
-  */
-  this.createFallbackSitelink = function(adgroup, adGroupObject, fallbackSitelink) {
-
-    this.sitelinkBuilder = AdsApp.extensions().newSitelinkBuilder();
-    var fallbackSitelinkUrl = fallbackSitelink.url;
-
-    if(URL_SCHEMA.addParameters == "YES"){
-      var urlParameterString =  fallbackSitelink.url.indexOf("?") == -1 ? "?":  "&" ;
-      urlParameterString += URL_SCHEMA.urlParameters.replace("adGroup/keyword","sitelink");
-      var regexString = new RegExp("campaign", "i");
-      var dynUrlParamString = urlParameterString.replace(regexString, adGroupObject.campaign);
-
-      fallbackSitelinkUrl += dynUrlParamString;
-    }
-
-    var creationResult = 0;
-
-    try{
-      var newSitelink = this.sitelinkBuilder
-      .withLinkText(fallbackSitelink.text)
-      .withFinalUrl(fallbackSitelinkUrl)
-      .build()
-      .getResult();
-
-      var sitelinkOperation = adgroup.addSitelink(newSitelink);
-
-      if (sitelinkOperation.isSuccessful()) { creationResult = 1; }
-      else {
-        var siteLinkErrors = sitelinkOperation.getErrors();
-
-        var errorRow = [TIME_STAMP, "Sitelink" , "Failed", siteLinkErrors, this.campaignName, adgroup.getName() , "", "", "", "", "", "", "", "", "", "","","",fallbackSitelink.text,"","","",""];
-        ERROR_LOG.push(errorRow);
-        ERROR_SUMMARY_OBJECT.siteLinkErrorCount++;
-        Logger.log("Sitelink Exception: The sitelink operation for sitelink " + fallbackSitelink.text + " in " + adgroup.getName() + " showed an error.");
-      }
-
-    } catch(e){
-      Logger.log("SitelinkCreationEception: The sitelink " + fallbackSitelink.text + " for "  +  adgroup.getName() + " could NOT be added.");
-      Logger.log("Specific error : " + e +". Error message : " + e.message + ". Stacktrace : " + e.stack); Logger.log(" ");
-      ERROR_SUMMARY_OBJECT.siteLinkErrorCount++;
-    }
-    return creationResult;
-  }
-
-
-  ///////
-  /////// 5.2 SitelinkDateHandler: activates and pauses sitelinks by changing end date
-  ///////
-  /*
-  * - update end dates via adgroupname-2-sitelinkName Converter with adgroups-to-be paused aus adgrouplist and sitelinkLookupName
-  * - convert sitelinkLookupnsme in select-in statement for BigQuery Tabelle slNames-2-IDs with where statement enabled
-  * - update sitelink status in bigquery
-  * - BigQuery returns sitelinkID Array
-  * - id array is split into 10k chunks and handed to selector as withId Statement to update end dates
-  * - operation is captures as result, all errors are logged, errorArray is sent as statusReset Query to
-  */
-
-
-  /*
-  * @param {array} adGroupList
-  * @param {array} aggregationTypes
-  * @return {array} sitelinkNames
-  */
-  this.convertAdGroupListToSitelinkNames = function(adGroupList, aggregationTypes) {
-
-    var sitelinkNames = [];
-
-    try{
-    	if (typeof adGroupList !== "undefined"){
-	    	for(var i=0; i < adGroupList.length; i++) {
-	        // Loop through every aggregation type
-	        var sitelinkName = adGroupList[i].replace("_Feed_BCG","").replace("_Feed_BC","").replace("_Feed_BM","").replace("_Feed_BG","").replace(/ /g,"_").toLowerCase();
-	        sitelinkNames.push(sitelinkName);
-	      }
-    	}
-    } catch(e){ Logger.log("AdGroup2SitelinkName_ConversionException: " + e  + ". stack : " + e.stack)}
-
-  return sitelinkNames;
-  }
-
-  /*
-  * @param {array} adGroupList, either toBePaused or to be activated
-  * @param {bool} status, the
-  * @param {object} storageHandler
-  * @return {void}
-  * @throws {exception} EmptyResponseException
-  */
-  this.setSitelinkEndDateByStatus = function(adGroupList, newStatus, storageHandler) {
-
-    var oldStatus = newStatus == "enabled" ? "paused" : "enabled";
-
-    var dateToday = this.dateYmd.replace(/-/g,"");
-    var sitelinkNames = this.convertAdGroupListToSitelinkNames(adGroupList);
-    Logger.log("Setting status " + newStatus + " (via end date change) to " + sitelinkNames.length + " sitelinkNames.");
-    if(DEBUG_MODE == 1) {Logger.log("convertAdGroupListToSitelinkNames : " + sitelinkNames);}
-
-    var sitelinkIds = [];
-
-    try{
-      if(sitelinkNames.length > 0){
-
-        sitelinkIds = storageHandler.getSitelinkIdsByNameAndStatus(sitelinkNames, this.campaignName, "adGroup_sitelinks", oldStatus);
-
-        // Only load sitelinks created by script and with min x impression in definded time range
-        var sitelinkIterator = AdsApp.extensions().sitelinks()
-        .withIds([ sitelinkIds.join(",") ])
-        // .withCondition("Impressions > " + SITELINK_BUILDER_CONFIG.minImpressionsForDateHandler)
-        // .forDateRange(SITELINK_BUILDER_CONFIG.periodOfImpressionsForDateHandler)
-        // .orderBy("Impressions DESC")
-        .get();
-
-        while (sitelinkIterator.hasNext()) {
-          var sitelink = sitelinkIterator.next();
-          var endDateYmdByStatus = newStatus == "enabled" ? "" : dateToday;
-          var sitelinkOperation = sitelink.setEndDate(endDateYmdByStatus);
-          // if(sitelinkOperation.getErrors().length > 0) {Logger.log(sitelink.getId());}
-        }
-        // @TODO: reset status via storage handler if sitelinkoperation failed
-      }
-
-    } catch(e){
-      Logger.log("EmptyResponseException: No sitelinks to be set to " + newStatus + "."); Logger.log("Specific error : " + e);
-    }
- }
-
-} // END SITELINK HANDLER
-
-
-
-
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -4522,9 +3692,7 @@ function StorageHandler(){
   */
 
   this.projectId = 'feeddataaggregation';
-  this.accountName = AdsApp.currentAccount().getName().replace(/[^a-zA-Z0-9 ]/g, "").replace(/ /g,"");
-  this.accountId = AdsApp.currentAccount().getCustomerId().replace(/[^a-zA-Z0-9 ]/g, "");
-  this.dataSetId = this.accountId + "_" + "nrFeedCampaign_EntityLog";
+  this.dataSetId = "nrFeedCampaign_prevalidation";
 
   /* Compound method to initialize database
   * @param {string} tableName
@@ -4611,63 +3779,6 @@ function StorageHandler(){
   }
 
 
-  /* ABSTRACT METHOD FOR GENERIC USE
-  * @return {array} fieldSchemaArray
-  */
-  this.generateFieldSchemaArray = function(){
-
-   var fieldSchemaArray = [];
-
-    // Specific sitelink table implementation
-    var idFieldSchema = BigQuery.newTableFieldSchema();
-    idFieldSchema.description = 'the ID of the entity';
-    idFieldSchema.name = 'id';
-    idFieldSchema.type = 'STRING';
-
-    var entityNameFieldSchema = BigQuery.newTableFieldSchema();
-    entityNameFieldSchema.description = 'the name of the sitelink';
-    entityNameFieldSchema.name = 'entityName';
-    entityNameFieldSchema.type = 'STRING';
-
-    var entityTypeFieldSchema = BigQuery.newTableFieldSchema();
-    entityTypeFieldSchema.description = 'the entity type, ie adgroup, sitelink etc';
-    entityTypeFieldSchema.name = 'entityType';
-    entityTypeFieldSchema.type = 'STRING';
-
-    var campaignNameFieldSchema = BigQuery.newTableFieldSchema();
-    campaignNameFieldSchema.name = 'campaignName';
-    campaignNameFieldSchema.type = 'STRING';
-
-    var campaignIdFieldSchema = BigQuery.newTableFieldSchema();
-    campaignIdFieldSchema.name = 'campaignId';
-    campaignIdFieldSchema.type = 'STRING';
-
-    var adgroupNameFieldSchema = BigQuery.newTableFieldSchema();
-    adgroupNameFieldSchema.name = 'adgroupName';
-    adgroupNameFieldSchema.type = 'STRING';
-
-    var adgroupIdFieldSchema = BigQuery.newTableFieldSchema();
-    adgroupIdFieldSchema.name = 'adgroupId';
-    adgroupIdFieldSchema.type = 'STRING';
-
-    var creationDateFieldSchema = BigQuery.newTableFieldSchema();
-    creationDateFieldSchema.name = 'creationDate';
-    creationDateFieldSchema.type = 'DATE';
-
-    var updateDateFieldSchema = BigQuery.newTableFieldSchema();
-    updateDateFieldSchema.name = 'updateDate';
-    updateDateFieldSchema.type = 'DATE';
-
-    var statusFieldSchema = BigQuery.newTableFieldSchema();
-    statusFieldSchema.description = 'the entity status';
-    statusFieldSchema.name = 'status';
-    statusFieldSchema.type = 'STRING';
-
-    var fieldSchemaArray = [idFieldSchema, entityNameFieldSchema, entityTypeFieldSchema, campaignNameFieldSchema, campaignIdFieldSchema, adgroupNameFieldSchema, adgroupIdFieldSchema, creationDateFieldSchema, updateDateFieldSchema, statusFieldSchema];
-
-    return fieldSchemaArray;
-  }
-
 
   /*
   * @param array createdEntitiesLog. an array of objects
@@ -4738,47 +3849,6 @@ function StorageHandler(){
     return results;
   }
 
-  /*
-  * @param {array} whereClauseArray
-  * @param {string} campaignName
-  * @param {string} tableName
-  * @param {string} status
-  * @return {array} sitelinkIds
-  * @throws {exception} EmptyResponseException
-  */
-  this.getSitelinkIdsByNameAndStatus = function(whereClauseArray, campaignName, tableName, oldStatus) {
-
-    var queryFieldArray = ['id'];
-
-    var queryRequest = BigQuery.newQueryRequest();
-    var fullTableName = this.projectId + ':' + this.dataSetId + '.' + tableName;
-    queryRequest.query = this.buildQueryByParameters(queryFieldArray, whereClauseArray, campaignName, oldStatus, fullTableName);
-    var query = BigQuery.Jobs.query(queryRequest, this.projectId);
-
-    var sitelinkIds = [];
-
-    if (query.jobComplete) {
-      try{
-        for (var i = 0; i < query.rows.length; i++) {
-          var row = query.rows[i];
-          var values = [];
-          for (var j = 0; j < row.f.length; j++) {
-            values.push(row.f[j].v);
-          }
-          sitelinkIds.push(values);
-        }
-      } catch(e){Logger.log("EmptyResponseException : No sitelinkIds were returned for this sitelinkNameList."); Logger.log("Specific error : " + e); Logger.log(" ");}
-    }
-
-    Logger.log("sitelinkIds : " + sitelinkIds);
-
-    // ex-ante update of bigQuery entity status before ads operation
-    var newStatus = oldStatus == "enabled" ? "paused" : "enabled";
-    // this.updateStatusInStorageById(sitelinkIds, newStatus, tableName);
-
-    return sitelinkIds;
-  }
-
 
   /*
   * @param {array} fieldArray
@@ -4813,10 +3883,7 @@ function StorageHandler(){
     queryRequest.query = fullQuery;
     var query = BigQuery.Jobs.query(queryRequest, this.projectId);
 
-    if (query.jobComplete) {
-
-      Logger.log("updateStatusInStorage complete : " + entityIdArray.length + " ids updated to " + status);
-    }
+    if (query.jobComplete) Logger.log("updateStatusInStorage complete : " + entityIdArray.length + " ids updated to " + status);
   }
 
 
@@ -4961,10 +4028,6 @@ UrlHandler.prototype.evaluateParamSchema = function(adGroupObject) {
 
 
 
-
-
-
-
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -4974,8 +4037,6 @@ UrlHandler.prototype.evaluateParamSchema = function(adGroupObject) {
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-
-
 /* ABSTRACT METHOD by DEFAULT!
 *
 * @param object adGroupObject
@@ -4983,7 +4044,7 @@ UrlHandler.prototype.evaluateParamSchema = function(adGroupObject) {
 * @throws error MissingImplementationError
 */
 UrlHandler.prototype.createUrlByAdGroupObject = function(adGroupObject){
-  // ABSTRACT METHOD by DEFAULT!
+
   throw new Error("MissingImplementationError: method urlHandler.createUrlByAdGroupObject is ABSTRACT by default, thus needs a client-specific implementation! ONLY remove if implemented and tested!");
 
   var finalUrl;

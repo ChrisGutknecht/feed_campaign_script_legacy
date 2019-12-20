@@ -3803,19 +3803,21 @@ function StorageHandler(){
     } catch(e){ Logger.log("EmptyRowRequest_Exception : No new created entities to log. " + e); Logger.log("Stacktrace: " + e);}
 
     try{
-      if(result.insertErrors != null) {
-        var allErrors = [];
-        for (var i = 0; i < result.insertErrors.length; i++) {
-          var insertError = result.insertErrors[i];
-          allErrors.push(Utilities.formatString('Error inserting item: %s', insertError.index));
+      if(typeof result !== "undefined") {
+        if(typeof result !== "undefined" result.insertErrors != null) {
+          var allErrors = [];
+          for (var i = 0; i < result.insertErrors.length; i++) {
+            var insertError = result.insertErrors[i];
+            allErrors.push(Utilities.formatString('Error inserting item: %s', insertError.index));
 
-          for (var j = 0; j < insertError.errors.length; j++) {
-            var error = insertError.errors[j];
-            allErrors.push(Utilities.formatString('- ' + error));
+            for (var j = 0; j < insertError.errors.length; j++) {
+              var error = insertError.errors[j];
+              allErrors.push(Utilities.formatString('- ' + error));
+            }
           }
-        }
-        Logger.log(allErrors.join('\n'));
-      } else if(DEBUG_MODE == 1) {Logger.log(Utilities.formatString('%s data rows inserted successfully.', insertAllRequest.rows.length)); Logger.log(" ");}
+          Logger.log(allErrors.join('\n'));
+        } else if(DEBUG_MODE == 1) {Logger.log(Utilities.formatString('%s data rows inserted successfully.', insertAllRequest.rows.length)); Logger.log(" ");}
+      }
     } catch(e){Logger.log("InsertErrors_Exception : " + e + " . " + e.stack);}
   }
 

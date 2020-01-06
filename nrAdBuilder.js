@@ -3804,7 +3804,7 @@ function StorageHandler(){
 
     try{
       if(typeof result !== "undefined") {
-        if(typeof result !== "undefined" result.insertErrors != null) {
+        if(result.insertErrors != null) {
           var allErrors = [];
           for (var i = 0; i < result.insertErrors.length; i++) {
             var insertError = result.insertErrors[i];

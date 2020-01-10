@@ -1662,7 +1662,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   var maxLimit = typeof maxLimit == "undefined" ?  this.feedContent.length : maxLimit;
 
   var historicalData = {};
-  if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1) var historicalData = this.getHistoricalQueryData;
+  if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1) var historicalData = this.getHistoricalQueryData();
 
   for(var i=1;i<maxLimit;i++){ //
     var listItem = this.feedContent[i];

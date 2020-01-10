@@ -1768,8 +1768,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
   } // END For loop
 
-  print(json.stringify(KEYWORD_VALIDATION_LOG));
-  // Logger.log("New Cache Entries : " + JSON.stringify(KEYWORD_VALIDATION_LOG));
+  Logger.log("New Cache Entries : " + JSON.stringify(KEYWORD_VALIDATION_LOG));
   if(KEYWORD_VALIDATION_LOG.length > 0 && INPUT_SOURCE_MODE == "ADBUILD") this.storageHandler.writeRows(KEYWORD_VALIDATION_LOG, "prevalidatedKeywords");
   Logger.log("validated adGroupObjects : " + adGroupObjects.length + " for campaign " + this.campaignName); Logger.log(" ");
   return adGroupObjects;

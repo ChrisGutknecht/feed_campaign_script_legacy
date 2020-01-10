@@ -1861,7 +1861,7 @@ FeedHandler.prototype.getHistoricalQueryData = function() {
       historicalQueryData.query = {'clicks' : row['Clicks'] , 'impressions' : row['Impressions']}
     }
   } catch (e) { Logger.log(e)}
-  Logger.log("Finished building historicalQueryData object.")
+  Logger.log("Finished building historicalQueryData object."); Logger.log(JSON.stringify(historicalQueryData));
   return historicalQueryData;
 }
 

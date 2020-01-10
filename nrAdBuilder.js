@@ -3691,7 +3691,7 @@ function StorageHandler(){
   * https://developers.google.com/apps-script/advanced/bigquery
   */
 
-  this.projectId = 'feeddataaggregation';
+  this.projectId = "feeddataaggregation";
   this.dataSetId = "nrFeedCampaign_prevalidation";
 
   /* Compound method to initialize database
@@ -3793,7 +3793,7 @@ function StorageHandler(){
 
     for(var i=0; i< createdEntitiesLog.length;i++){
       var newRow = BigQuery.newTableDataInsertAllRequestRows();
-      newRow.insertId = createdEntitiesLog[i].sitelinkId;
+      newRow.insertId = i;
       newRow.json = createdEntitiesLog[i];
       insertAllRequest.rows.push(newRow);
     }

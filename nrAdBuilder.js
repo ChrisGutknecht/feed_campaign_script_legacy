@@ -1661,6 +1661,9 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   }
   var maxLimit = typeof maxLimit == "undefined" ?  this.feedContent.length : maxLimit;
 
+  var historicalData = {};
+  if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1) historicalData = this.getHistoricalQueryData;
+
   for(var i=1;i<maxLimit;i++){ //
     var listItem = this.feedContent[i];
 
@@ -1749,12 +1752,12 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       // Case III: Check historical account queries
       if(adGroupPushed == 0) {
         Logger.log("Case III: Check historical account queries | " + cleanedKeyword);
-        if(this.checkIfKpiLevelReached(cleanedKeyword) == 0) {
+        if(this.checkIfKpiLevelReached(cleanedKeyword, historicalData) == 0) {
           keywordValidationLogObject.validationStatus = false;
           keywordValidationLogObject.validationType = "none";
           KEYWORD_VALIDATION_LOG.push(keywordValidationLogObject);
         }
-        if(this.checkIfKpiLevelReached(cleanedKeyword) == 1) {
+        if(this.checkIfKpiLevelReached(cleanedKeyword, historicalData) == 1) {
           adGroupObjects.push(adGroupObject);
           keywordValidationLogObject.validationType = "accountQueries";
           KEYWORD_VALIDATION_LOG.push(keywordValidationLogObject);
@@ -1830,44 +1833,46 @@ FeedHandler.prototype.foundInGoogleSuggest = function(keyword) {
   return foundInSuggest;
 }
 
-
 /**
-* @param string keyword,
-* @return bool levelReached
+* @return object historicalQueryData
 */
-FeedHandler.prototype.checkIfKpiLevelReached = function(keyword) {
-  var levelReached = 0;
+FeedHandler.prototype.getHistoricalQueryData = function() {
   var queryConfig = NEW_CAMPAIGN_CONFIG.useQueryData;
-
   var minImpressions = queryConfig.filterKPI == "Impressions" ?queryConfig.minAmount_KPI : 0;
   var minClicks = queryConfig.filterKPI == "Clicks" ? queryConfig.minAmount_KPI : 0;
-
   var dateYesterday =  new Date().toISOString().substring(0, 10).replace(/-/g, "");
   var dateRange = queryConfig.startingDateRange + "," + dateYesterday;
+  var historicalQueryData = {};
 
   try {
-
     var selectQuery =
         'SELECT Query,KeywordTextMatchingQuery,QueryMatchTypeWithVariant,CampaignName,AdGroupName,Impressions, Clicks,Cost,Ctr,AverageCpc ' +
         'FROM SEARCH_QUERY_PERFORMANCE_REPORT ' +
-        'WHERE Query = "' + keyword + '" AND Impressions >= ' + minImpressions + '  AND Clicks >= ' + minClicks + ' ' +
+        'WHERE Impressions >= ' + minImpressions + '  AND Clicks >= ' + minClicks + ' ' +
         'DURING ' + dateRange;
     sqReport = AdsApp.report(selectQuery);
-
   } catch (e) {Logger.log("SearchQuerySelectException: " + e); }
-
-  try {
-    sqReportRows = sqReport.rows();
-    sqReportRows.next();
-  } catch (e) { return levelReached;}
 
   try {
     if (sqReportRows.hasNext()) {
       var row = sqReportRows.next();
-      // Logger.log(JSON.stringify(row));
-      levelReached = 1;
+      var query = row['Query'];
+      historicalQueryData.query = {'clicks' : row['Clicks'] , 'impressions' : row['Impressions']}
     }
   } catch (e) { Logger.log(e)}
+  Logger.log("Finished building historicalQueryData object.")
+  return historicalQueryData;
+}
+
+
+/**
+* @param string keyword
+* @param object historicalData
+* @return bool levelReached
+*/
+FeedHandler.prototype.checkIfKpiLevelReached = function(keyword, historicalData) {
+  var levelReached = 0;
+  if(historicalData.keyword) levelReached = 1;
 
   return levelReached;
 }

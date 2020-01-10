@@ -1854,6 +1854,7 @@ FeedHandler.prototype.getHistoricalQueryData = function() {
   } catch (e) {Logger.log("SearchQuerySelectException: " + e); }
 
   try {
+    var sqReportRows = sqReport.rows();
     if (sqReportRows.hasNext()) {
       var row = sqReportRows.next();
       var query = row['Query'];

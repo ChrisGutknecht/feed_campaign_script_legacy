@@ -1855,7 +1855,7 @@ FeedHandler.prototype.getHistoricalQueryData = function() {
 
   try {
     var sqReportRows = sqReport.rows();
-    if (sqReportRows.hasNext()) {
+    while (sqReportRows.hasNext()) {
       var row = sqReportRows.next();
       var query = row['Query'];
       historicalQueryData.query = {'clicks' : row['Clicks'] , 'impressions' : row['Impressions']}

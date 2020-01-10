@@ -1729,7 +1729,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
       // Case I: Found in validatedKeywords Cache
       if(prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {
-        // Logger.log("Case I: Found in validatedKeywords Cache | " + cleanedKeyword);
+        Logger.log("Case I: Found in validatedKeywords Cache | " + cleanedKeyword);
         adGroupObjects.push(adGroupObject);
         adGroupPushed = 1;
       }
@@ -1737,7 +1737,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       // Case II: Found in Google Suggest
       if(adGroupPushed == 0) {
         if (this.foundInGoogleSuggest(cleanedKeyword) == 1) {
-          // Logger.log("Case II: Found in Google Suggest | " + cleanedKeyword);
+          Logger.log("Case II: Found in Google Suggest | " + cleanedKeyword);
           adGroupObjects.push(adGroupObject);
           adGroupPushed = 1;
 
@@ -1748,7 +1748,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
       // Case III: Check historical account queries
       if(adGroupPushed == 0) {
-        // Logger.log("Case III: Check historical account queries | " + cleanedKeyword);
+        Logger.log("Case III: Check historical account queries | " + cleanedKeyword);
         if(this.checkIfKpiLevelReached(cleanedKeyword) == 0) {
           keywordValidationLogObject.validationStatus = false;
           keywordValidationLogObject.validationType = "none";

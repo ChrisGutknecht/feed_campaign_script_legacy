@@ -1700,7 +1700,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       	}
 
       }
-    }
+    } // END extra columns
 
     if(adGroupObject.campaign != this.campaignName) continue;
 
@@ -1747,7 +1747,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       }
 
       // Case III: Check historical account queries
-      if(adGroupPushed == 0) {
+      /*if(adGroupPushed == 0) {
         Logger.log("Case III: Check historical account queries | " + cleanedKeyword);
         if(this.checkIfKpiLevelReached(cleanedKeyword) == 0) {
           keywordValidationLogObject.validationStatus = false;
@@ -1759,7 +1759,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
           keywordValidationLogObject.validationType = "accountQueries";
           KEYWORD_VALIDATION_LOG.push(keywordValidationLogObject);
         }
-      }
+      } */ // END case III
     }
     if(i % 10 == 0) Logger.log(i + " adgroups done . " + adGroupObjects.length + " validated");
 

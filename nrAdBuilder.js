@@ -1729,7 +1729,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
       // Case I: Found in validatedKeywords Cache
       if(prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {
-        Logger.log("Case I: Found in validatedKeywords Cache | " + cleanedKeyword);
+        // Logger.log("Case I: Found in validatedKeywords Cache | " + cleanedKeyword);
         adGroupObjects.push(adGroupObject);
         adGroupPushed = 1;
       }
@@ -1737,7 +1737,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       // Case II: Found in Google Suggest
       if(adGroupPushed == 0) {
         if (this.foundInGoogleSuggest(cleanedKeyword) == 1) {
-          Logger.log("Case II: Found in Google Suggest | " + cleanedKeyword);
+          // Logger.log("Case II: Found in Google Suggest | " + cleanedKeyword);
           adGroupObjects.push(adGroupObject);
           adGroupPushed = 1;
 
@@ -1748,7 +1748,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
       // Case III: Check historical account queries
       if(adGroupPushed == 0) {
-        Logger.log("Case III: Check historical account queries | " + cleanedKeyword);
+        // Logger.log("Case III: Check historical account queries | " + cleanedKeyword);
         if(this.checkIfKpiLevelReached(cleanedKeyword) == 0) {
           keywordValidationLogObject.validationStatus = false;
           keywordValidationLogObject.validationType = "none";
@@ -1761,13 +1761,14 @@ FeedHandler.prototype.getAdGroupObjects = function() {
         }
       } // END case III
     }
-    if(i % 10 == 0) Logger.log(i + " adgroups done . " + adGroupObjects.length + " validated");
+    if(i % 500 == 0) Logger.log(i + " adgroups done . " + adGroupObjects.length + " validated");
 
     var minutesRemaining = AdsApp.getExecutionInfo().getRemainingTime()/60;
     if (minutesRemaining < 5) {Logger.log("Execution time past twentyfive minutes. Stopping execution..."); break;}
 
   } // END For loop
 
+  print(json.stringify(KEYWORD_VALIDATION_LOG));
   // Logger.log("New Cache Entries : " + JSON.stringify(KEYWORD_VALIDATION_LOG));
   if(KEYWORD_VALIDATION_LOG.length > 0 && INPUT_SOURCE_MODE == "ADBUILD") this.storageHandler.writeRows(KEYWORD_VALIDATION_LOG, "prevalidatedKeywords");
   Logger.log("validated adGroupObjects : " + adGroupObjects.length + " for campaign " + this.campaignName); Logger.log(" ");

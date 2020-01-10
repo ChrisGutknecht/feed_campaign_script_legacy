@@ -1729,6 +1729,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
       // Case I: Found in validatedKeywords Cache
       if(prevalidatedKeywords.indexOf(cleanedKeyword) != -1) {
+        Logger.log("Case I: Found in validatedKeywords Cache | " + cleanedKeyword);
         adGroupObjects.push(adGroupObject);
         adGroupPushed = 1;
       }
@@ -1736,6 +1737,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
       // Case II: Found in Google Suggest
       if(adGroupPushed == 0) {
         if (this.foundInGoogleSuggest(cleanedKeyword) == 1) {
+          Logger.log("Case II: Found in Google Suggest | " + cleanedKeyword);
           adGroupObjects.push(adGroupObject);
           adGroupPushed = 1;
 
@@ -1746,6 +1748,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
       // Case III: Check historical account queries
       if(adGroupPushed == 0) {
+        Logger.log("Case III: Check historical account queries | " + cleanedKeyword);
         if(this.checkIfKpiLevelReached(cleanedKeyword) == 0) {
           keywordValidationLogObject.validationStatus = false;
           keywordValidationLogObject.validationType = "none";
@@ -1758,7 +1761,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
         }
       }
     }
-    if(i % 500 == 0) Logger.log(i + " adgroups done . " + adGroupObjects.length + " validated");
+    if(i % 10 == 0) Logger.log(i + " adgroups done . " + adGroupObjects.length + " validated");
 
     var minutesRemaining = AdsApp.getExecutionInfo().getRemainingTime()/60;
     if (minutesRemaining < 5) {Logger.log("Execution time past twentyfive minutes. Stopping execution..."); break;}

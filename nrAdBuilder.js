@@ -3798,37 +3798,16 @@ function StorageHandler(){
   */
   this.writeRows = function(createdEntitiesLog, tableName) {
 
-    var insertAllRequest = BigQuery.newTableDataInsertAllRequest();
-    insertAllRequest.rows = [];
-
-    for(var i=0; i< createdEntitiesLog.length;i++){
-      var newRow = BigQuery.newTableDataInsertAllRequestRows();
-      newRow.insertId = i;
-      newRow.json = createdEntitiesLog[i];
-      insertAllRequest.rows.push(newRow);
-    }
-
     try{
-      var result = BigQuery.Tabledata.insertAll(insertAllRequest, this.projectId, this.dataSetId, tableName);
-    } catch(e){ Logger.log("EmptyRowRequest_Exception : No new created entities to log. " + e); Logger.log("Stacktrace: " + e);}
-
-    try{
-      if(typeof result !== "undefined") {
-        if(result.insertErrors != null) {
-          var allErrors = [];
-          for (var i = 0; i < result.insertErrors.length; i++) {
-            var insertError = result.insertErrors[i];
-            allErrors.push(Utilities.formatString('Error inserting item: %s', insertError.index));
-
-            for (var j = 0; j < insertError.errors.length; j++) {
-              var error = insertError.errors[j];
-              allErrors.push(Utilities.formatString('- ' + error));
-            }
-          }
-          Logger.log(allErrors.join('\n'));
-        } else if(DEBUG_MODE == 1) {Logger.log(Utilities.formatString('%s data rows inserted successfully.', insertAllRequest.rows.length)); Logger.log(" ");}
-      }
-    } catch(e){Logger.log("InsertErrors_Exception : " + e + " . " + e.stack);}
+      var payload = JSON.stringify({"keyword_dict" : createdEntitiesLog});
+      var url = "https://europe-west1-feeddataaggregation.cloudfunctions.net/write_validated_keywords_to_bq";
+      var options = {
+        "method" : "POST",
+        "contentType" : "application/json",
+        "payload" : payload
+      };
+      var response = UrlFetchApp.fetch(url, options);        
+    } catch(e){ Logger.log(e + ". Stacktrace: " + e.stack);}
   }
 
 

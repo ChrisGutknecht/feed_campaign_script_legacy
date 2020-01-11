@@ -1860,7 +1860,7 @@ FeedHandler.prototype.getHistoricalQueryData = function() {
       var row = sqReportRows.next();
       historicalQueryData[row['Query']] = {'clicks' : row['Clicks'] , 'impressions' : row['Impressions']}
       counter++;
-      if(counter % 100 == 0) Logger.log(counter + "entries added to historicalData object");
+      if(counter % 1000 == 0) Logger.log(counter + "entries added to historicalData object");
     }
   } catch (e) { Logger.log(e)}
   Logger.log("Finished building historicalQueryData object.");

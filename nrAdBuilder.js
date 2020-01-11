@@ -1772,7 +1772,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   } // END For loop
 
   Logger.log("New Cache Entries : " + JSON.stringify(KEYWORD_VALIDATION_LOG));
-  if(KEYWORD_VALIDATION_LOG.length > 0 && INPUT_SOURCE_MODE == "ADBUILD") this.storageHandler.writeRows(KEYWORD_VALIDATION_LOG, "prevalidatedKeywords");
+  if(KEYWORD_VALIDATION_LOG.length > 0 && INPUT_SOURCE_MODE == "ADBUILD") this.storageHandler.writeRows(KEYWORD_VALIDATION_LOG);
   Logger.log("validated adGroupObjects : " + adGroupObjects.length + " for campaign " + this.campaignName); Logger.log(" ");
   return adGroupObjects;
 };
@@ -1843,6 +1843,7 @@ FeedHandler.prototype.getHistoricalQueryData = function() {
   var dateYesterday =  new Date().toISOString().substring(0, 10).replace(/-/g, "");
   var dateRange = queryConfig.startingDateRange + "," + dateYesterday;
   var historicalQueryData = {};
+  var counter = 0;
 
   try {
     var selectQuery =
@@ -1859,6 +1860,8 @@ FeedHandler.prototype.getHistoricalQueryData = function() {
       var row = sqReportRows.next();
       var query = row['Query'];
       historicalQueryData.query = {'clicks' : row['Clicks'] , 'impressions' : row['Impressions']}
+      counter++;
+      if(counter % 100 == 0) Logger.log(Counter + "entries added to historicalData object");
     }
   } catch (e) { Logger.log(e)}
   Logger.log("Finished building historicalQueryData object.");
@@ -3796,7 +3799,7 @@ function StorageHandler(){
   * @return void
   * @throws exception EmptyRowRequest_Exception
   */
-  this.writeRows = function(createdEntitiesLog, tableName) {
+  this.writeRows = function(createdEntitiesLog) {
 
     try{
       var payload = JSON.stringify({"keyword_dict" : createdEntitiesLog});
@@ -3806,7 +3809,8 @@ function StorageHandler(){
         "contentType" : "application/json",
         "payload" : payload
       };
-      var response = UrlFetchApp.fetch(url, options);        
+      var response = UrlFetchApp.fetch(url, options);
+      if(Logger.log(response) == "OK") Logger.log("Keywords written to validation database.")
     } catch(e){ Logger.log(e + ". Stacktrace: " + e.stack);}
   }
 

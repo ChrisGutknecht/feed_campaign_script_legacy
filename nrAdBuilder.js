@@ -1833,10 +1833,12 @@ FeedHandler.prototype.foundInGoogleSuggest = function(keyword) {
   return foundInSuggest;
 }
 
+
 /**
-* @return object historicalQueryData
+* @return {object} historicalQueryData
 */
 FeedHandler.prototype.getHistoricalQueryData = function() {
+
   var queryConfig = NEW_CAMPAIGN_CONFIG.useQueryData;
   var minImpressions = queryConfig.filterKPI == "Impressions" ?queryConfig.minAmount_KPI : 0;
   var minClicks = queryConfig.filterKPI == "Clicks" ? queryConfig.minAmount_KPI : 0;
@@ -1844,6 +1846,7 @@ FeedHandler.prototype.getHistoricalQueryData = function() {
   var dateRange = queryConfig.startingDateRange + "," + dateYesterday;
   var historicalQueryData = {};
   var counter = 0;
+  var sqReport;
 
   try {
     var selectQuery =
@@ -1860,11 +1863,10 @@ FeedHandler.prototype.getHistoricalQueryData = function() {
       var row = sqReportRows.next();
       historicalQueryData[row['Query']] = {'clicks' : row['Clicks'] , 'impressions' : row['Impressions']}
       counter++;
-      if(counter % 10000 == 0) Logger.log(counter + "entries added to historicalData object");
+      if(counter % 20000 == 0) Logger.log(counter + "entries added to historicalData object");
     }
   } catch (e) { Logger.log(e)}
   Logger.log("Finished building historicalQueryData object.");
-  Logger.log(JSON.stringify(historicalQueryData));
   return historicalQueryData;
 }
 

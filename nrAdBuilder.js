@@ -394,6 +394,7 @@ function ErrorLogger(scriptName) {
     }
   };
 
+
   /*
   * @param spreadsheet {object}
   * @return {integer}

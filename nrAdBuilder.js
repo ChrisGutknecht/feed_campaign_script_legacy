@@ -2705,7 +2705,6 @@ AdHandler.prototype.createExpAdsWithParams = function(withParam, urlHandler) {
         headline3 = typeof adTemplate.h3 == "undefined" ? "" : this.replaceVariablesByType(adTemplate.h3, "headline3", this.adGroupObjects[i]);
         description2 = typeof adTemplate.desc2 == "undefined" ? "" : this.replaceVariablesByType(adTemplate.desc2, "description2", this.adGroupObjects[i]);
 
-
         // Cut off long headlines by word, not by character
         headline = this.cutOffByWordOrChar(headline, this.adGroupObjects[i]);
 
@@ -3594,6 +3593,7 @@ NegativeKeywordHandler.prototype._addNegativeKeywords = function(adGroupObject) 
       adsApp_adGroup.createNegativeKeyword(adGroupObject.negativeKeywords[i]);
       if(DEBUG_MODE == 1) {Logger.log("Adding negative keyword %s", adGroupObject.negativeKeywords[i]);}
     }
+    adsApp_adGroup.applyLabel(standardLabel);
   }
 
   // Create matchtype split campaigns and set exact keyword as negative

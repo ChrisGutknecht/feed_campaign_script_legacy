@@ -1910,7 +1910,7 @@ FeedHandler.prototype.getQueryData = function() {
 
   try {
     var file = DriveApp.getFilesByName(fileName).next();
-    Logger.log("MimeType " + file.getMimeType() + " | Size " + file.getSize()/1000 + " KB");
+    Logger.log("Query Data File: MimeType " + file.getMimeType() + " | Size " + file.getSize()/1000 + " KB");
     content = file.getBlob().getDataAsString();
   } catch(e) {
     Logger(e + " . " + e.stack);
@@ -2188,7 +2188,7 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
 
 
   // Case Ads
-  if(entityCase === "staticAds" || "paramAds") {
+  if(entityCase === "staticAds" || entityCase === "paramAds") {
     adGroupIterator = AdsApp.adGroups().withCondition('CampaignName = "' + this.campaignName + '"')
     .withCondition('CampaignStatus != REMOVED')
     .withCondition("Impressions = 0")

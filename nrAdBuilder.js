@@ -2188,7 +2188,7 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
 
 
   // Case Ads
-  else {
+  if(entityCase === "staticAds" || "paramAds") {
     adGroupIterator = AdsApp.adGroups().withCondition('CampaignName = "' + this.campaignName + '"')
     .withCondition('CampaignStatus != REMOVED')
     .withCondition("Impressions = 0")

@@ -1638,6 +1638,7 @@ function FeedHandler(feedurl, columnSeparator, columnMapper, campaignName, feedC
   this.columnMapper = columnMapper;
   this.campaignName = campaignName;
   this.storageHandler = storageHandler;
+  this.queryFileName = "FeedCampaigns_" + AdsApp.currentAccount().getCustomerId() + "_queryData.json";
 }
 
 
@@ -1835,36 +1836,64 @@ FeedHandler.prototype.foundInGoogleSuggest = function(keyword) {
 }
 
 
+FeedHandler.prototype.getHistoricalQueryData = function() {
+
+  var data_object = {};
+
+  // Fetch latest file from storage
+  var latest_data = JSON.parse(this.getQueryData());
+  var dataObjectDate = Object.keys(latest_data)[0].toString();
+  var date = new Date().toISOString().substring(0, 10).toString();
+
+  // If file has today's date, return contained data
+  if (dataObjectDate == date) {
+    Logger.log("Returning existing file");
+    return latest_data[date];
+  }
+
+  // If storage file is outdated, generate new data and write to storage (once per day)
+  if (dataObjectDate != date) {
+    Logger.log("Query file needs to be updated")
+    var data_object = this.generateHistoricalQueryData();
+    var data_with_date = {};
+    data_with_date[date] = data_object;
+    this.updateQueryData(data_with_date);
+  }
+  return data_object[date];
+}
+
+
 /**
 * @return {object} historicalQueryData
 */
-FeedHandler.prototype.getHistoricalQueryData = function() {
+FeedHandler.prototype.generateHistoricalQueryData = function() {
 
   var queryConfig = NEW_CAMPAIGN_CONFIG.useQueryData;
-  var minImpressions = queryConfig.filterKPI == "Impressions" ?queryConfig.minAmount_KPI : 0;
+  var minImpressions = queryConfig.filterKPI == "Impressions" ? queryConfig.minAmount_KPI : 0;
   var minClicks = queryConfig.filterKPI == "Clicks" ? queryConfig.minAmount_KPI : 0;
-  var dateYesterday =  new Date().toISOString().substring(0, 10).replace(/-/g, "");
-  var dateRange = queryConfig.startingDateRange + "," + dateYesterday;
+  var dateToday =  new Date().toISOString().substring(0, 10).replace(/-/g, "");
+  var dateRange =  queryConfig.startingDateRange + "," + dateToday;
   var historicalQueryData = {};
   var counter = 0;
   var sqReport;
 
   try {
     var selectQuery =
-        'SELECT Query,KeywordTextMatchingQuery,QueryMatchTypeWithVariant,CampaignName,AdGroupName,Impressions, Clicks,Cost,Ctr,AverageCpc ' +
+        'SELECT Query, Impressions, Clicks ' +
         'FROM SEARCH_QUERY_PERFORMANCE_REPORT ' +
         'WHERE Impressions >= ' + minImpressions + '  AND Clicks >= ' + minClicks + ' ' +
         'DURING ' + dateRange;
     sqReport = AdsApp.report(selectQuery);
   } catch (e) {Logger.log("SearchQuerySelectException: " + e); }
 
+  var sqReportRows = sqReport.rows();
+
   try {
-    var sqReportRows = sqReport.rows();
     while (sqReportRows.hasNext()) {
       var row = sqReportRows.next();
       historicalQueryData[row['Query']] = {'clicks' : row['Clicks'] , 'impressions' : row['Impressions']}
       counter++;
-      if(counter % 20000 == 0) Logger.log(counter + "entries added to historicalData object");
+      if(counter % 50000 == 0) Logger.log(counter + " entries added to data object");
     }
   } catch (e) { Logger.log(e)}
   Logger.log("Finished building historicalQueryData object.");
@@ -1873,9 +1902,47 @@ FeedHandler.prototype.getHistoricalQueryData = function() {
 
 
 /**
-* @param string keyword
-* @param object historicalData
-* @return bool levelReached
+* @return {object} response
+*/
+FeedHandler.prototype.getQueryData = function() {
+  var fileName = this.queryFileName;
+  var content = {};
+
+  try {
+    var file = DriveApp.getFilesByName(fileName).next();
+    Logger.log("MimeType " + file.getMimeType() + " | Size " + file.getSize()/1000 + " KB");
+    content = file.getBlob().getDataAsString();
+  } catch(e) {
+    Logger(e + " . " + e.stack);
+  }
+
+  return content;
+}
+
+/**
+* @param {object} data
+* @return void
+*/
+FeedHandler.prototype.updateQueryData = function(data) {
+
+  var fileName = this.queryFileName;
+
+  try {
+    var file = DriveApp.getFilesByName(fileName).next();
+    file.setContent(JSON.stringify(data));
+    Logger.log("Query file updated");
+  } catch(e) {
+    DriveApp.createFile(fileName, JSON.stringify(latest_data), "application/json");
+    Logger.log("Query file created");
+    Logger.log(e + " . " + e.stack);
+  }
+}
+
+
+/**
+* @param {string} keyword
+* @param {object} historicalData
+* @return {bool} levelReached
 */
 FeedHandler.prototype.checkIfKpiLevelReached = function(keyword, historicalData) {
   var levelReached = 0;

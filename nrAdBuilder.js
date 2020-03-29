@@ -2170,6 +2170,7 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
     .withCondition("LabelNames CONTAINS_ANY ['" + activeLabel +  "','" + pausedLabel +  "']")
     .forDateRange("LAST_MONTH")
     .get();
+    Logger.log("Found adgroups for Case Missing Keywords : " + adGroupIterator.totalNumEntities());
   }
 
   // Case "negatives"
@@ -2182,6 +2183,7 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
     .withCondition("LabelNames CONTAINS_ANY ['" + activeLabel +  "','" + pausedLabel +  "']")
     .forDateRange("LAST_MONTH")
     .get();
+    Logger.log("Found adgroups for Case Missing Negatives: " + adGroupIterator.totalNumEntities());
   }
 
 
@@ -2194,6 +2196,7 @@ AdGroupHandler.prototype.getAdGroupsWithout = function(entityCase){
     .withCondition("LabelNames CONTAINS_ANY ['" + activeLabel +  "','" + pausedLabel +  "']")
     .forDateRange("LAST_MONTH")
     .get();
+    Logger.log("Found adgroups for Case Missing Ads: " + adGroupIterator.totalNumEntities());
   }
 
   while (adGroupIterator.hasNext()) {

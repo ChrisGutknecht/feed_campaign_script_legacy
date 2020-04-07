@@ -1651,7 +1651,11 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   Logger.log("Building adgroup objects. Total input : " + this.feedContent.length);
 
   var KEYWORD_VALIDATION_LOG = [];
+  var historicalData = {};
+
   if(INPUT_SOURCE_MODE === "ADBUILD") {
+    if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1) historicalData = this.getHistoricalQueryData();
+    
     var prevalidatedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", true);
     Logger.log("prevalidatedKeywords (Length : " + prevalidatedKeywords.length + ") : " + prevalidatedKeywords[0]);
 
@@ -1663,8 +1667,6 @@ FeedHandler.prototype.getAdGroupObjects = function() {
   }
   var maxLimit = typeof maxLimit == "undefined" ?  this.feedContent.length : maxLimit;
 
-  var historicalData = {};
-  if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1) var historicalData = this.getHistoricalQueryData();
 
   for(var i=1;i<maxLimit;i++){ //
     var listItem = this.feedContent[i];

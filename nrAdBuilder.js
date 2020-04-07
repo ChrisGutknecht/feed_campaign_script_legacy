@@ -1913,7 +1913,7 @@ FeedHandler.prototype.getQueryData = function() {
     Logger.log("Query Data File: MimeType " + file.getMimeType() + " | Size " + file.getSize()/1000 + " KB");
     content = file.getBlob().getDataAsString();
   } catch(e) {
-    Logger(e + " . " + e.stack);
+    Logger.log(e + " . " + e.stack);
   }
 
   return content;

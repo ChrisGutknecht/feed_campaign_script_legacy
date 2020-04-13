@@ -1655,7 +1655,7 @@ FeedHandler.prototype.getAdGroupObjects = function() {
 
   if(INPUT_SOURCE_MODE === "ADBUILD") {
     if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1) historicalData = this.getHistoricalQueryData();
-    
+
     var prevalidatedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", true);
     Logger.log("prevalidatedKeywords (Length : " + prevalidatedKeywords.length + ") : " + prevalidatedKeywords[0]);
 
@@ -1768,7 +1768,6 @@ FeedHandler.prototype.getAdGroupObjects = function() {
         }
       } // END case III
     }
-    if(i % 500 == 0) Logger.log(i + " adgroups done . " + adGroupObjects.length + " validated");
 
     var minutesRemaining = AdsApp.getExecutionInfo().getRemainingTime()/60;
     if (minutesRemaining < 5) {Logger.log("Execution time past twentyfive minutes. Stopping execution..."); break;}

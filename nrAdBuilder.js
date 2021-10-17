@@ -1013,7 +1013,7 @@ CampaignHandler.prototype.getCampaignNames = function() {
   if(DEBUG_MODE === 1) Logger.log("validatedCampaignList:" + validatedCampaignList);
   if(validatedCampaignList.length === 0) throw new Error("MissingCampaignError: No validated campaigns found. Please check your campaign prefix or rerun the script if autoCampaignCreation is enabled.");
 
-  validatedCampaignList = shuffleArray(validatedCampaignList);
+  validatedCampaignList = this.shuffleArray(validatedCampaignList);
 
   return validatedCampaignList;
 };

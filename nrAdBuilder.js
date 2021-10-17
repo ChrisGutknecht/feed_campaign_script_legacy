@@ -1002,11 +1002,25 @@ CampaignHandler.prototype.getCampaignNames = function() {
   if(DEBUG_MODE === 1) Logger.log("validatedCampaignList:" + validatedCampaignList);
   if(validatedCampaignList.length === 0) throw new Error("MissingCampaignError: No validated campaigns found. Please check your campaign prefix or rerun the script if autoCampaignCreation is enabled.");
 
-  var campOrder = Math.round(Math.random());
-  if(campOrder === 0 && validatedCampaignList.length > 30) validatedCampaignList = validatedCampaignList.reverse();
-
+  validatedCampaignList = this.shuffleArray(validatedCampaignList);
   return validatedCampaignList;
 };
+
+
+/**
+* @param array
+* @return array
+*/
+
+CampaignHandler.prototype.shuffleArray = function(array) {
+for (i = array.length - 1; i > 0; i--) {
+  var j = Math.floor(Math.random() * (i + 1));
+  var temp = array[i];
+  array[i] = array[j];
+  array[j] = temp;
+}
+return array;
+}
 
 
 /**

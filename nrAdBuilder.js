@@ -1657,13 +1657,9 @@ FeedHandler.prototype.getAdGroupObjects = function() {
     if(NEW_CAMPAIGN_CONFIG.useQueryData.filterByQueries == 1) historicalData = this.getHistoricalQueryData();
 
     var prevalidatedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", true);
-    Logger.log("prevalidatedKeywords (Length : " + prevalidatedKeywords.length + ") : " + prevalidatedKeywords[0]);
-
     var discardedKeywords = this.storageHandler.selectKeywordsByStatus("prevalidatedKeywords", false);
-    Logger.log("discardedKeywords (Length : " + discardedKeywords.length + ") : " + discardedKeywords[0]);
-
     var maxLimit = (this.feedContent.length - prevalidatedKeywords.length - discardedKeywords.length) > 500 ? (prevalidatedKeywords.length + discardedKeywords.length + 500) : this.feedContent.length;
-    Logger.log("maxLimit : " + maxLimit);
+
   }
   var maxLimit = typeof maxLimit == "undefined" ?  this.feedContent.length : maxLimit;
 

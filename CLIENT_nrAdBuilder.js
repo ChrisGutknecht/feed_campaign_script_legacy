@@ -8,9 +8,6 @@
 */
 
 /******************* CREDENTIALS ******************/
-var API_KEY = "XXXXX";
-var LICENSED_VERSION = "SOME_VERSION";
-
 
 
 /***************************************************/
@@ -44,11 +41,11 @@ var CAMPAIGN_INFO_CONFIG = {
   "campaign identifier" : "",  // CASE-SENSITIVE. Include full string with all characters eg "brand ||"
 };
 
-var FEED_URL              = "http://transport.productsup.io/95e5d287f1824d4cb0ba/channel/60082/b4f_adw_export_non-sale_bmm.csv"; //URL of your business data feed.
+var FEED_URL              = "$feed_url"; //URL of your business data feed.
 var COLUMN_SEPARATOR      = ",";
 
 var ADGROUP_DEFAULT_BID   = 0.3;
-var AD_SPREADSHEET_ID     = "1J2myXfHv9cT4O3E1LqsqAYq2u6UtrzbPbZcotk-DSQU";
+var AD_SPREADSHEET_ID     = "$sheet-id";
 
 var URL_SCHEMA = {
   "urlType"                 : "Default_Search", // Eligible values: "Default_Search", "Custom_ByFeedString" or "Custom_ByObject", ie not via search links
@@ -124,7 +121,7 @@ var SITELINK_BUILDER_CONFIG = {
 
 function main(){
   
-  var scriptfile_name = "https://scripts.adserver.cc/getScript.php?package=nrAdBuilder&version="+LICENSED_VERSION+"&script=nrAdBuilder.js&aid="+AdWordsApp.currentAccount().getCustomerId()+"&key="+API_KEY+"&accountname="+AdWordsApp.currentAccount().getName();
+  var scriptfile_name = "$url.js";
   var scriptFile_raw = UrlFetchApp.fetch(scriptfile_name).getContentText();
 
   /*  << If BigQueryAuthorizaionError <<  Change "/*" to "//", run once to trigger auth popup, then change back to "/*".

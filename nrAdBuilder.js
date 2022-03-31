@@ -266,9 +266,6 @@ function nrCampaignBuilder(feedContent) {
     if(!keywordHandler) keywordHandler = new KeywordHandler(campaignName, newAdGroupObjects);
     keywordHandler.pauseNonPerformingKeywords_highCost();
 
-    // Generate close variant keywords via Suggest
-    if(typeof NEW_KEYWORD_CONFIG.addCloseVariants !== "undefined") keywordHandler.addCloseSuggestVariants();
-
     // Pause non-serving adgroups and ads
     /*if(INPUT_SOURCE_MODE === "ADBUILD") {
       adGroupHandler.pauseAdGroups_withNonServingKeywords();

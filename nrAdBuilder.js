@@ -200,7 +200,7 @@ function nrCampaignBuilder(feedContent) {
 
       // 4. Creating keywords
       keywordHandler = new KeywordHandler(campaignName, newAdGroupObjects);
-      keywordHandler.addKwsWithRelativeBids(NEW_KEYWORD_CONFIG, urlHandler);
+      keywordHa ndler.addKwsWithRelativeBids(NEW_KEYWORD_CONFIG, urlHandler);
 
       // 4.1 Creating negative keywords
       var negativeKeywordHandler = new NegativeKeywordHandler(campaignName, newAdGroupObjects);
@@ -3682,7 +3682,11 @@ NegativeKeywordHandler.prototype.provideLabel = function (labelName){
   try {
     var labelSelector = AdsApp.labels().withCondition("Name = '" + labelName + "'").get();
     if (labelSelector.totalNumEntities() === 0) AdsApp.createLabel(labelName);
-  } catch (e) { Logger.log("LabelOperationException: " + e); Logger.log(" ");}
+    return labelName;
+  } catch (e) { 
+    Logger.log("LabelOperationException: " + e); Logger.log(" ");
+  }
+  
 };
 
 

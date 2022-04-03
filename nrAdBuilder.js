@@ -200,7 +200,7 @@ function nrCampaignBuilder(feedContent) {
 
       // 4. Creating keywords
       keywordHandler = new KeywordHandler(campaignName, newAdGroupObjects);
-      keywordHa ndler.addKwsWithRelativeBids(NEW_KEYWORD_CONFIG, urlHandler);
+      keywordHandler.addKwsWithRelativeBids(NEW_KEYWORD_CONFIG, urlHandler);
 
       // 4.1 Creating negative keywords
       var negativeKeywordHandler = new NegativeKeywordHandler(campaignName, newAdGroupObjects);

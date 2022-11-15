@@ -106,20 +106,6 @@ function nrCampaignBuilder(feedContent) {
   // Prevalidate adgroups and store for lookup in BigQuery
   var keywordValidationStorageHandler = new StorageHandler();
 
-  // Pausing ALL adgroups if campaigns are missing in feed
-  /*if(INPUT_SOURCE_MODE === "ADBUILD") {
-		campaignSettingService.findCampaignsNotInScope();
-		var campaignsNotInFeed = campaignHandler.getCampaignsNotInFeed();
-		campaignHandler.pauseAdGroupsOfCampaignsByName(campaignsNotInFeed);
-
-		for(var k = 0; k < campaignsNotInFeed.length; k++) {
-			var missingCampAgHandler = new AdGroupHandler(campaignsNotInFeed[k]);
-			var activeAdGroups = new AdGroupList(missingCampAgHandler.getByStatus("ENABLED")).getList();
-			Logger.log(activeAdGroups);
-			missingCampAgHandler.setStatus(activeAdGroups, "PAUSED");
-		}
-  }*/
-
 
   ////////
   // START Campaign Iterator
@@ -184,7 +170,7 @@ function nrCampaignBuilder(feedContent) {
     if(newSlicedAdGroups.length > 0) {
 
       // 3.1 Create adgroups - Limiting amount to smaller chunks, 300 adGroups per run
-      if(URL_SCHEMA.addParameters == "YES"){urlHandler.evaluateParamSchema(fullAdGroupObjects[0]);}
+     /* if(URL_SCHEMA.addParameters == "YES"){urlHandler.evaluateParamSchema(fullAdGroupObjects[0]);}
 
       // Instantiate AdTemplate parser
       adTemplateParser2 = new AdTemplateParser2(AD_SPREADSHEET_ID, CAMPAIGN_INFO_CONFIG, SET_ADS_CONFIG);
@@ -196,7 +182,7 @@ function nrCampaignBuilder(feedContent) {
       // 3.2 Create ads, standard or sale, static and param
       var adHandler = new AdHandler(campaignName, newAdGroupObjects, adTemplates);
       adHandler.createExpAdsWithParams(1, urlHandler);
-      adHandler.createExpAdsWithParams(0, urlHandler);
+      adHandler.createExpAdsWithParams(0, urlHandler);*/
 
       // 4. Creating keywords
       keywordHandler = new KeywordHandler(campaignName, newAdGroupObjects);
@@ -212,12 +198,13 @@ function nrCampaignBuilder(feedContent) {
       snippetHandler.addSnippets(newAdGroupObjects);
 
     } // END IF New Adgroups
+    
 
 
 
     if(INPUT_SOURCE_MODE === "ADBUILD"){
     // 6. Missing entity refill
-      if(newAdGroupObjects.length > 0) campaignHandler.setNewAndRemoveOldCheckLabels("EntityCheck_TBD", campaignName, "EntityCheck_Complete");
+      /*if(newAdGroupObjects.length > 0) campaignHandler.setNewAndRemoveOldCheckLabels("EntityCheck_TBD", campaignName, "EntityCheck_Complete");
 
       if(ENTITY_REFILL_CHECK && newAdGroupObjects.length === 0 && campaignHandler.getLabel("EntityCheck_Complete", campaignName) === false) {
 
@@ -256,7 +243,7 @@ function nrCampaignBuilder(feedContent) {
         var fillupStaticAdHandler = new AdHandler(campaignName, incompleteAdGroupObjects, adTemplates);
         fillupStaticAdHandler.createExpAdsWithParams(0, urlHandler);
 
-        campaignHandler.setNewAndRemoveOldCheckLabels("EntityCheck_Complete",campaignName,"EntityCheck_TBD");
+        campaignHandler.setNewAndRemoveOldCheckLabels("EntityCheck_Complete",campaignName,"EntityCheck_TBD");*/
       }
     } // END IF Adbuild
 
@@ -265,12 +252,6 @@ function nrCampaignBuilder(feedContent) {
     // keywordHandler.pauseNonPerformingKeywords_lowCtr();
     if(!keywordHandler) keywordHandler = new KeywordHandler(campaignName, newAdGroupObjects);
     keywordHandler.pauseNonPerformingKeywords_highCost();
-
-    // Pause non-serving adgroups and ads
-    /*if(INPUT_SOURCE_MODE === "ADBUILD") {
-      adGroupHandler.pauseAdGroups_withNonServingKeywords();
-      keywordHandler.pauseNonServingKeywords();
-    }*/
 
     // Limiting load in initial creation phase, to prevent multi campaign time-out
     if(newSlicedAdGroups.length === 100) break;
@@ -1105,7 +1086,7 @@ CampaignHandler.prototype.removeMissingCampaigns = function(inputCampaignList) {
   this.missingCampaigns = missingCampaigns;
 
   if(missingCampaigns.length > 0) {
-    this.createCampaigns(missingCampaigns);
+    // this.createCampaigns(missingCampaigns);
     this.writeMissingCampaignsToErrorLog(missingCampaigns);
   }
 
